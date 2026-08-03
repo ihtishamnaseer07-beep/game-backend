@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AI Cartoon Battle Arena</string>
+    <string name="title_activity_main">AI Cartoon Battle Arena</string>
+    <string name="package_name">com.cartoongame.app</string>
+    <string name="custom_url_scheme">com.cartoongame.app</string>
+</resources>
