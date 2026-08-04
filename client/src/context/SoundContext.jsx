@@ -47,6 +47,25 @@ const soundCues = {
     { frequency: 330, duration: 0.08, gain: 0.035, type: 'triangle' },
     { frequency: 196, duration: 0.14, delay: 0.08, gain: 0.045, type: 'square' },
   ],
+  modalOpen: [
+    { frequency: 520, duration: 0.06, gain: 0.03, type: 'sine' },
+    { frequency: 740, duration: 0.08, delay: 0.05, gain: 0.035, type: 'sine' },
+  ],
+  modalClose: [
+    { frequency: 440, duration: 0.06, gain: 0.03, type: 'triangle' },
+    { frequency: 300, duration: 0.09, delay: 0.05, gain: 0.025, type: 'triangle' },
+  ],
+  deposit: [
+    { frequency: 523.25, duration: 0.07, gain: 0.04, type: 'sine' },
+    { frequency: 659.25, duration: 0.07, delay: 0.06, gain: 0.045, type: 'sine' },
+    { frequency: 880, duration: 0.12, delay: 0.12, gain: 0.05, type: 'sine' },
+  ],
+  gameLaunch: [
+    { frequency: 330, duration: 0.06, gain: 0.03, type: 'square' },
+    { frequency: 523.25, duration: 0.07, delay: 0.05, gain: 0.04, type: 'triangle' },
+    { frequency: 880, duration: 0.09, delay: 0.11, gain: 0.05, type: 'sine' },
+    { frequency: 1046.5, duration: 0.12, delay: 0.18, gain: 0.04, type: 'sine' },
+  ],
 };
 
 const SoundContext = createContext(null);

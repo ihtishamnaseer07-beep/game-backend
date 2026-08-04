@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSound } from '../../context/SoundContext';
 import BannerSlider from '../common/BannerSlider';
 import CategoryNav from '../common/CategoryNav';
 import GameCard from '../common/GameCard';
@@ -37,29 +38,34 @@ export default function HomePage() {
   const [activeTab, setActiveTab]       = useState('home'); // bottom nav tab
   const [showInvite, setShowInvite]     = useState(false);
   const { user, logout } = useAuth();
+  const { muted, toggleMute, playSound } = useSound();
   const balance = user?.coins ?? 0;
 
   const handlePlay = (game) => {
-    if (!user) {
-      setModal('login');  // auth guard — guest user ko login pe redirect
-      return;
-    }
+    if (!user) { playSound('cancel'); setModal('login'); return; }
+    playSound('gameLaunch');
     setActiveGame(game);
   };
 
   const handleTabChange = (tab) => {
-    if (tab === 'more') { setShowInvite(true); return; }
+    playSound('click');
+    if (tab === 'more') { playSound('modalOpen'); setShowInvite(true); return; }
     setActiveTab(tab);
   };
+
+  const openModal = (m) => { playSound('modalOpen'); setModal(m); };
+  const openWallet = (w) => { playSound('modalOpen'); setWalletModal(w); };
+  const closeModal = () => { playSound('modalClose'); setModal(null); };
+  const closeWallet = () => { playSound('modalClose'); setWalletModal(null); };
 
   const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
   const sectionLabel = activeCategory === 'slot' ? '🎰 Slots' : '🔥 Hot';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
-      {walletModal === 'deposit' && <DepositModal onClose={() => setWalletModal(null)} />}
-      {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={() => setWalletModal(null)} />}
+      {modal && <AuthModal mode={modal} onClose={closeModal} />}
+      {walletModal === 'deposit' && <DepositModal onClose={closeWallet} />}
+      {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={closeWallet} />}
       {activeGame && (
         <GamePlayerModal
           game={activeGame}
@@ -68,7 +74,7 @@ export default function HomePage() {
           onDeposit={() => { setActiveGame(null); setWalletModal('deposit'); }}
         />
       )}
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {showInvite && <InviteModal onClose={() => { playSound('modalClose'); setShowInvite(false); }} />}
       <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
           <div className="flex items-center gap-2">
@@ -81,16 +87,21 @@ export default function HomePage() {
               <span className="text-green-400">786</span>
             </span>
           </div>
+          <div className="flex items-center gap-2">
+            {/* global mute toggle */}
+            <button
+              onClick={() => { toggleMute(); }}
+              title={muted ? 'Unmute' : 'Mute'}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-base transition-colors"
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
           {user ? (
             <div className="flex items-center gap-2">
-              {/* avatar + name */}
+              {/* avatar */}
               <div className="flex items-center gap-1.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-xs font-bold text-white shadow">
                   {user.name?.charAt(0).toUpperCase() ?? 'U'}
-                </div>
-                <div className="hidden sm:flex flex-col leading-none">
-                  <span className="text-[11px] font-semibold text-white">{user.name?.split(' ')[0]}</span>
-                  <span className="text-[10px] text-slate-500">Rs {balance.toFixed(2)}</span>
                 </div>
               </div>
               {/* balance chip */}
@@ -99,7 +110,7 @@ export default function HomePage() {
               </span>
               {/* deposit button */}
               <button
-                onClick={() => setWalletModal('deposit')}
+                onClick={() => { playSound('deposit'); openWallet('deposit'); }}
                 className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30"
               >
                 + Deposit
@@ -107,15 +118,16 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={() => setModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30">Register</button>
-              <button onClick={() => setModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors">Login</button>
+              <button onClick={() => openModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30">Register</button>
+              <button onClick={() => openModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors">Login</button>
             </div>
           )}
+          </div>
         </div>
       </header>
       <div className="max-w-xl mx-auto">
         <BannerSlider />
-        <CategoryNav active={activeCategory} onChange={setActiveCategory} />
+        <CategoryNav active={activeCategory} onChange={(c) => { playSound('select'); setActiveCategory(c); }} />
         <section className="px-4 mt-1">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-white">{sectionLabel}</h2>

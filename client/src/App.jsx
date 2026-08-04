@@ -11,6 +11,7 @@ import AuthPage from './components/Auth/AuthPage';
 import { SoundProvider } from './context/SoundContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import MobileGuard from './components/common/MobileGuard';
 
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
@@ -22,6 +23,7 @@ function App() {
     <AuthProvider>
       <LanguageProvider>
         <SoundProvider>
+          <MobileGuard>
           <Router>
             <div className="min-h-screen bg-slate-950 text-slate-100">
               <Routes>
@@ -37,6 +39,7 @@ function App() {
               </Routes>
             </div>
           </Router>
+          </MobileGuard>
         </SoundProvider>
       </LanguageProvider>
     </AuthProvider>
