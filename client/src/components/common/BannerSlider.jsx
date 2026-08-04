@@ -38,14 +38,14 @@ export default function BannerSlider() {
   const slide = slides[active];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl mx-4 mt-3 h-36">
+    <div className="relative overflow-hidden rounded-2xl mx-3 mt-3 h-32">
       <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} transition-all duration-700`} />
-      <div className="relative z-10 flex h-full flex-col justify-center px-6 gap-1">
-        <span className={`text-xs font-bold tracking-widest uppercase ${slide.accent} bg-black/30 w-fit px-2 py-0.5 rounded-full`}>
+      <div className="relative z-10 flex h-full flex-col justify-center px-4 gap-1">
+        <span className={`text-[10px] font-bold tracking-widest uppercase ${slide.accent} bg-black/30 w-fit px-2 py-0.5 rounded-full`}>
           {slide.badge}
         </span>
-        <h2 className="text-xl font-extrabold text-white leading-tight">{slide.title}</h2>
-        <p className="text-sm text-slate-300">{slide.subtitle}</p>
+        <h2 className="text-base font-extrabold text-white leading-tight">{slide.title}</h2>
+        <p className="text-xs text-slate-300">{slide.subtitle}</p>
       </div>
 
       {/* dots */}

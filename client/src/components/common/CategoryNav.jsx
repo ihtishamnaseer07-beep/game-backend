@@ -65,7 +65,7 @@ const categories = [
 
 export default function CategoryNav({ active, onChange }) {
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
+    <div className="flex gap-2 overflow-x-auto px-3 py-2 scrollbar-none">
       {categories.map((cat) => (
         <button
           key={cat.key}

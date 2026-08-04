@@ -11,8 +11,8 @@ export default function GameCard({ title, provider, color = 'from-slate-700 to-s
       onTouchStart={() => setHovered(true)}
       onTouchEnd={() => setHovered(false)}
     >
-      {/* poster */}
-      <div className={`bg-gradient-to-br ${color} flex items-center justify-center h-36 sm:h-40 text-5xl`}>
+      {/* poster — taller on 2-col grid */}
+      <div className={`bg-gradient-to-br ${color} flex items-center justify-center h-28 sm:h-36 text-4xl sm:text-5xl`}>
         {emoji}
       </div>
 
@@ -24,7 +24,7 @@ export default function GameCard({ title, provider, color = 'from-slate-700 to-s
       >
         <button
           onClick={onPlay}
-          className="rounded-full bg-green-500 hover:bg-green-400 active:scale-95 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-green-500/40 transition-all"
+          className="rounded-full bg-green-500 hover:bg-green-400 active:scale-95 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-green-500/40 transition-all"
         >
           ▶ Play
         </button>

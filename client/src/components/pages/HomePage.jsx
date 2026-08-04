@@ -62,7 +62,7 @@ export default function HomePage() {
   const sectionLabel = activeCategory === 'slot' ? '🎰 Slots' : '🔥 Hot';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 pb-24">
       {modal && <AuthModal mode={modal} onClose={closeModal} />}
       {walletModal === 'deposit' && <DepositModal onClose={closeWallet} />}
       {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={closeWallet} />}
@@ -75,8 +75,8 @@ export default function HomePage() {
         />
       )}
       {showInvite && <InviteModal onClose={() => { playSound('modalClose'); setShowInvite(false); }} />}
-      <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
-        <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
+      <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur border-b border-slate-800">
+        <div className="flex items-center justify-between px-3 py-2 max-w-full">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-green-500 shadow-lg shadow-green-500/30 overflow-hidden">
               <img src="/logo.png" alt="logo" className="h-full w-full object-cover" />
@@ -128,12 +128,12 @@ export default function HomePage() {
       <div className="max-w-xl mx-auto">
         <BannerSlider />
         <CategoryNav active={activeCategory} onChange={(c) => { playSound('select'); setActiveCategory(c); }} />
-        <section className="px-4 mt-1">
-          <div className="flex items-center justify-between mb-3">
+        <section className="px-3 mt-3">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-bold text-white">{sectionLabel}</h2>
-            <button className="text-xs text-green-400 hover:text-green-300 font-semibold transition-colors">View All →</button>
+            <button onClick={() => playSound('click')} className="text-xs text-green-400 hover:text-green-300 font-semibold transition-colors">View All →</button>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 gap-2">
             {games.map((game) => (
               <GameCard
                 key={game.id}
@@ -146,22 +146,22 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-        <section className="px-4 mt-5">
-          <div className="grid grid-cols-4 gap-2">
+        <section className="px-3 mt-4">
+          <div className="grid grid-cols-4 gap-1.5">
             {[
               { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800', action: () => setWalletModal('deposit') },
               { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800', action: () => setWalletModal('withdraw') },
               { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => setShowInvite(true) },
               { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900', action: () => {} },
             ].map((action) => (
-              <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-2xl bg-gradient-to-b ${action.color} p-3 active:scale-95 transition-transform`}>
-                <span className="text-xl">{action.emoji}</span>
-                <span className="text-[10px] font-semibold text-white/90">{action.label}</span>
+              <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-b ${action.color} p-2.5 active:scale-95 transition-transform`}>
+                <span className="text-lg">{action.emoji}</span>
+                <span className="text-[9px] font-semibold text-white/90 leading-none">{action.label}</span>
               </button>
             ))}
           </div>
         </section>
-        <div className="mx-4 mt-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 flex items-center gap-2">
+        <div className="mx-3 mt-3 mb-2 rounded-xl bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 flex items-center gap-2">
           <span className="text-sm">📢</span>
           <p className="text-xs text-yellow-300 font-medium truncate">Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!</p>
         </div>
@@ -169,17 +169,17 @@ export default function HomePage() {
 
       {/* ── Promo Tab View ── */}
       {activeTab === 'promo' && (
-        <div className="max-w-xl mx-auto"><PromoView /></div>
+        <div className="w-full overflow-x-hidden"><PromoView /></div>
       )}
 
       {/* ── Support Tab View ── */}
       {activeTab === 'support' && (
-        <div className="max-w-xl mx-auto"><SupportView /></div>
+        <div className="w-full overflow-x-hidden"><SupportView /></div>
       )}
 
       {/* ── Profile Tab View ── */}
       {activeTab === 'profile' && (
-        <div className="max-w-xl mx-auto">
+        <div className="w-full overflow-x-hidden">
           <ProfileView
             user={user}
             balance={balance}

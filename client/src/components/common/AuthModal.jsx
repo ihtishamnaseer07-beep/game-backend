@@ -96,10 +96,10 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   return (
     // backdrop
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl shadow-black/60 p-6">
+      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl p-5 max-h-[92vh] overflow-y-auto">
 
         {/* close button */}
         <button
