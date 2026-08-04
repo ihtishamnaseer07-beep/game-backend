@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { sendEmail } from '../utils/emailService.js';
 import { generateAuthToken, generateVerificationToken, generateResetToken } from '../utils/tokenService.js';

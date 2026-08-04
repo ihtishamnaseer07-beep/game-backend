@@ -1,1 +1,30 @@
-node_modules
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+client/.env
+client/.env.*
+
+# Frontend build/cache
+client/dist/
+client/.vite/
+
+# Android/Capacitor build outputs
+client/android/.gradle/
+client/android/build/
+client/android/app/build/
+client/android/capacitor-cordova-android-plugins/build/
+client/android/local.properties
+
+# Logs and runtime files
+*.log
+logs/
+coverage/
+
+# OS/editor
+.DS_Store
+Thumbs.db
