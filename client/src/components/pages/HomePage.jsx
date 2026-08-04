@@ -8,6 +8,8 @@ import AuthModal from '../common/AuthModal';
 import DepositModal from '../common/DepositModal';
 import WithdrawModal from '../common/WithdrawModal';
 import GamePlayerModal from '../common/GamePlayerModal';
+import InviteModal from '../common/InviteModal';
+import PromoView from '../common/PromoView';
 
 const HOT_GAMES = [
   { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
@@ -27,10 +29,12 @@ const SLOT_GAMES = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('hot');
-  const [modal, setModal]           = useState(null);  // 'login' | 'register' | null
-  const [walletModal, setWalletModal] = useState(null); // 'deposit' | 'withdraw' | null
-  const [activeGame, setActiveGame]   = useState(null); // game object | null
-  const { user } = useAuth();
+  const [modal, setModal]             = useState(null);   // 'login' | 'register'
+  const [walletModal, setWalletModal]   = useState(null);   // 'deposit' | 'withdraw'
+  const [activeGame, setActiveGame]     = useState(null);   // game object
+  const [activeTab, setActiveTab]       = useState('home'); // bottom nav tab
+  const [showInvite, setShowInvite]     = useState(false);
+  const { user, logout } = useAuth();
   const balance = user?.coins ?? 0;
 
   const handlePlay = (game) => {
@@ -39,6 +43,12 @@ export default function HomePage() {
       return;
     }
     setActiveGame(game);
+  };
+
+  const handleTabChange = (tab) => {
+    if (tab === 'more') { setShowInvite(true); return; }
+    if (tab === 'support') { window.open('/support', '_self'); return; }
+    setActiveTab(tab);
   };
 
   const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
@@ -57,6 +67,7 @@ export default function HomePage() {
           onDeposit={() => { setActiveGame(null); setWalletModal('deposit'); }}
         />
       )}
+      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
       <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
           <div className="flex items-center gap-2">
@@ -127,7 +138,7 @@ export default function HomePage() {
             {[
               { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800', action: () => setWalletModal('deposit') },
               { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800', action: () => setWalletModal('withdraw') },
-              { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => {} },
+              { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => setShowInvite(true) },
               { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900', action: () => {} },
             ].map((action) => (
               <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-2xl bg-gradient-to-b ${action.color} p-3 active:scale-95 transition-transform`}>
@@ -142,7 +153,55 @@ export default function HomePage() {
           <p className="text-xs text-yellow-300 font-medium truncate">Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!</p>
         </div>
       </div>
-      <BottomNav />
+
+      {/* ── Promo Tab View ── */}
+      {activeTab === 'promo' && (
+        <div className="max-w-xl mx-auto"><PromoView /></div>
+      )}
+
+      {/* ── Profile Tab View ── */}
+      {activeTab === 'profile' && (
+        <div className="max-w-xl mx-auto px-4 py-6">
+          {user ? (
+            <div className="flex flex-col gap-4">
+              <div className="rounded-2xl bg-slate-900 border border-slate-700 p-5 flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-2xl font-extrabold text-white shadow-lg">
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-bold text-white">{user.name}</p>
+                  <p className="text-xs text-slate-400">{user.email}</p>
+                  <p className="text-xs text-yellow-400 font-semibold mt-0.5">Rs {balance.toFixed(2)} balance</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setWalletModal('deposit')} className="rounded-2xl bg-green-500/10 border border-green-500/30 p-4 text-left hover:bg-green-500/20 transition-colors">
+                  <p className="text-xl">💰</p><p className="text-sm font-bold text-white mt-1">Deposit</p>
+                </button>
+                <button onClick={() => setWalletModal('withdraw')} className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-4 text-left hover:bg-blue-500/20 transition-colors">
+                  <p className="text-xl">🏧</p><p className="text-sm font-bold text-white mt-1">Withdraw</p>
+                </button>
+                <button onClick={() => setShowInvite(true)} className="rounded-2xl bg-orange-500/10 border border-orange-500/30 p-4 text-left hover:bg-orange-500/20 transition-colors">
+                  <p className="text-xl">🎁</p><p className="text-sm font-bold text-white mt-1">Invite Friends</p>
+                </button>
+                <button onClick={logout} className="rounded-2xl bg-red-500/10 border border-red-500/30 p-4 text-left hover:bg-red-500/20 transition-colors">
+                  <p className="text-xl">🚪</p><p className="text-sm font-bold text-red-400 mt-1">Logout</p>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <span className="text-5xl">👤</span>
+              <p className="text-slate-400">Please login to view your profile</p>
+              <button onClick={() => setModal('login')} className="rounded-xl bg-green-500 hover:bg-green-400 px-8 py-3 text-sm font-bold text-white transition-colors">
+                🔑 Login
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }
