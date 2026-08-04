@@ -3,8 +3,7 @@ import NavBar from '../common/NavBar';
 import SectionHeading from '../common/SectionHeading';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { API_URL } from '../../config';
 
 function SupportCoinPage() {
   const [availableCoins, setAvailableCoins] = useState(0);

@@ -4,14 +4,13 @@ import SectionHeading from '../common/SectionHeading';
 import LoadingCard from '../common/LoadingCard';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { API_URL } from '../../config';
 
 const recentMatches = [
   { id: 1, matchup: 'Team A vs Team B', result: 'Team B won', time: '2 minutes ago' },
   { id: 2, matchup: 'Team B vs Team A', result: 'Draw', time: '10 minutes ago' },
   { id: 3, matchup: 'Team A vs Team B', result: 'Team A won', time: '30 minutes ago' }
 ];
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 function HomePage() {
   const [scoreA, setScoreA] = useState(24);

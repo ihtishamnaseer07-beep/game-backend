@@ -51,7 +51,7 @@ services:
     pullRequestPreviewsEnabled: true
     envVars:
       - key: VITE_API_URL
-        value: https://game-backend.onrender.com
+        value: https://game-backend-edjo.onrender.com
     routes:
       - type: rewrite
         source: /*

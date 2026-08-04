@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import NavBar from '../common/NavBar';
 import SectionHeading from '../common/SectionHeading';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { API_URL } from '../../config';
 
 function LeaderboardPage() {
   const [records, setRecords] = useState([]);
