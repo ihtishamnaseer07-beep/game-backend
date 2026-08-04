@@ -9,31 +9,37 @@ import MatchArenaPage from './components/pages/MatchArenaPage';
 import AdminDashboardPage from './components/pages/AdminDashboardPage';
 import AuthPage from './components/Auth/AuthPage';
 import { SoundProvider } from './context/SoundContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('authToken');
+  const { token } = useAuth();
   return token ? children : <Navigate to="/auth" replace />;
 }
 
 function App() {
   return (
-    <SoundProvider>
-      <Router>
-        <div className="min-h-screen bg-slate-950 text-slate-100">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
-            <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
-            <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
-            <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-          </Routes>
-        </div>
-      </Router>
-    </SoundProvider>
+    <AuthProvider>
+      <LanguageProvider>
+        <SoundProvider>
+          <Router>
+            <div className="min-h-screen bg-slate-950 text-slate-100">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
+                <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
+                <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+                <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              </Routes>
+            </div>
+          </Router>
+        </SoundProvider>
+      </LanguageProvider>
+    </AuthProvider>
   );
 }
 
