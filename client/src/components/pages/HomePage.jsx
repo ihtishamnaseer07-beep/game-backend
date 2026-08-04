@@ -1,10 +1,10 @@
 ﻿import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import BannerSlider from '../common/BannerSlider';
 import CategoryNav from '../common/CategoryNav';
 import GameCard from '../common/GameCard';
 import BottomNav from '../common/BottomNav';
+import AuthModal from '../common/AuthModal';
 
 const HOT_GAMES = [
   { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
@@ -24,6 +24,7 @@ const SLOT_GAMES = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('hot');
+  const [modal, setModal] = useState(null); // 'login' | 'register' | null
   const { user } = useAuth();
 
   const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
@@ -31,6 +32,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+      {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
       <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
           <div className="flex items-center gap-2">
@@ -50,8 +52,8 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/auth" className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30">Register</Link>
-              <Link to="/auth" className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors">Login</Link>
+              <button onClick={() => setModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30">Register</button>
+              <button onClick={() => setModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors">Login</button>
             </div>
           )}
         </div>
