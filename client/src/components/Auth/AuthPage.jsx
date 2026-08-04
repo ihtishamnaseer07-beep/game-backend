@@ -51,9 +51,10 @@ function AuthPage() {
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
-        // non-JSON response (HTML error page, CORS block, empty body)
+        // non-JSON: wrong URL, CORS block, or server returning HTML
         const text = await res.text();
-        throw new Error(`Server error (${res.status}): ${text.slice(0, 120) || 'No response body'}`);
+        const hint = text.slice(0, 80) || 'empty body';
+        throw new Error(`Backend unreachable (${res.status}). URL: ${API_URL} — ${hint}`);
       }
 
       if (!res.ok) {
