@@ -58,10 +58,36 @@ loadEnvironment();
 
 const app = express();
 const server = http.createServer(app);
-const clientOrigin = process.env.CLIENT_URL || process.env.FRONTEND_URL || '*';
+const rawOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+// allow any onrender.com subdomain so renamed/suffixed Render services work
+const isAllowedOrigin = (origin) => {
+  if (!origin) return false;
+  if (rawOrigins.includes(origin)) return true;
+  if (origin.endsWith('.onrender.com')) return true;
+  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+  return false;
+};
+
+const corsOptions = {
+  origin: rawOrigins.length === 0 ? '*' : (origin, callback) => {
+    if (!origin || isAllowedOrigin(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin not allowed — ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+};
+
+const clientOrigin = rawOrigins.length > 0 ? isAllowedOrigin : '*';
 const io = new SocketServer(server, {
   cors: {
-    origin: clientOrigin,
+    origin: rawOrigins.length === 0 ? '*' : (origin, callback) => {
+      if (!origin || isAllowedOrigin(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin not allowed — ${origin}`));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
@@ -70,7 +96,7 @@ const io = new SocketServer(server, {
 app.set('io', io);
 
 app.use(helmet());
-app.use(cors({ origin: clientOrigin, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

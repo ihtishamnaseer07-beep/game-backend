@@ -46,7 +46,15 @@ function AuthPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        // non-JSON response (HTML error page, CORS block, empty body)
+        const text = await res.text();
+        throw new Error(`Server error (${res.status}): ${text.slice(0, 120) || 'No response body'}`);
+      }
 
       if (!res.ok) {
         throw new Error(data.message || 'Authentication failed');
@@ -60,7 +68,7 @@ function AuthPage() {
       navigate('/profile');
       setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
     } catch (error) {
-      setMessage(error.message || 'Something went wrong');
+      setMessage(error.message || 'Something went wrong. Check your connection.');
     } finally {
       setLoading(false);
     }
