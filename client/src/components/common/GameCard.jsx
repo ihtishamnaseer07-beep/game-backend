@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function GameCard({ title, provider, color = 'from-slate-700 to-slate-800', emoji }) {
+export default function GameCard({ title, provider, color = 'from-slate-700 to-slate-800', emoji, onPlay }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -22,7 +22,10 @@ export default function GameCard({ title, provider, color = 'from-slate-700 to-s
           hovered ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <button className="rounded-full bg-green-500 hover:bg-green-400 active:scale-95 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-green-500/40 transition-all">
+        <button
+          onClick={onPlay}
+          className="rounded-full bg-green-500 hover:bg-green-400 active:scale-95 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-green-500/40 transition-all"
+        >
           ▶ Play
         </button>
       </div>

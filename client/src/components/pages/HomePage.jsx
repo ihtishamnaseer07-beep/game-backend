@@ -7,6 +7,7 @@ import BottomNav from '../common/BottomNav';
 import AuthModal from '../common/AuthModal';
 import DepositModal from '../common/DepositModal';
 import WithdrawModal from '../common/WithdrawModal';
+import GamePlayerModal from '../common/GamePlayerModal';
 
 const HOT_GAMES = [
   { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
@@ -26,10 +27,19 @@ const SLOT_GAMES = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('hot');
-  const [modal, setModal] = useState(null);        // 'login' | 'register' | null
+  const [modal, setModal]           = useState(null);  // 'login' | 'register' | null
   const [walletModal, setWalletModal] = useState(null); // 'deposit' | 'withdraw' | null
+  const [activeGame, setActiveGame]   = useState(null); // game object | null
   const { user } = useAuth();
   const balance = user?.coins ?? 0;
+
+  const handlePlay = (game) => {
+    if (!user) {
+      setModal('login');  // auth guard — guest user ko login pe redirect
+      return;
+    }
+    setActiveGame(game);
+  };
 
   const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
   const sectionLabel = activeCategory === 'slot' ? '🎰 Slots' : '🔥 Hot';
@@ -39,6 +49,14 @@ export default function HomePage() {
       {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
       {walletModal === 'deposit' && <DepositModal onClose={() => setWalletModal(null)} />}
       {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={() => setWalletModal(null)} />}
+      {activeGame && (
+        <GamePlayerModal
+          game={activeGame}
+          balance={balance}
+          onClose={() => setActiveGame(null)}
+          onDeposit={() => { setActiveGame(null); setWalletModal('deposit'); }}
+        />
+      )}
       <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
           <div className="flex items-center gap-2">
@@ -93,7 +111,14 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {games.map((game) => (
-              <GameCard key={game.id} title={game.title} provider={game.provider} emoji={game.emoji} color={game.color} />
+              <GameCard
+                key={game.id}
+                title={game.title}
+                provider={game.provider}
+                emoji={game.emoji}
+                color={game.color}
+                onPlay={() => handlePlay(game)}
+              />
             ))}
           </div>
         </section>
