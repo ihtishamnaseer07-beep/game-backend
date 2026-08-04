@@ -5,6 +5,8 @@ import CategoryNav from '../common/CategoryNav';
 import GameCard from '../common/GameCard';
 import BottomNav from '../common/BottomNav';
 import AuthModal from '../common/AuthModal';
+import DepositModal from '../common/DepositModal';
+import WithdrawModal from '../common/WithdrawModal';
 
 const HOT_GAMES = [
   { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
@@ -24,8 +26,10 @@ const SLOT_GAMES = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('hot');
-  const [modal, setModal] = useState(null); // 'login' | 'register' | null
+  const [modal, setModal] = useState(null);        // 'login' | 'register' | null
+  const [walletModal, setWalletModal] = useState(null); // 'deposit' | 'withdraw' | null
   const { user } = useAuth();
+  const balance = user?.coins ?? 0;
 
   const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
   const sectionLabel = activeCategory === 'slot' ? '🎰 Slots' : '🔥 Hot';
@@ -33,6 +37,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
       {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
+      {walletModal === 'deposit' && <DepositModal onClose={() => setWalletModal(null)} />}
+      {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={() => setWalletModal(null)} />}
       <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3 max-w-xl mx-auto">
           <div className="flex items-center gap-2">
@@ -47,8 +53,27 @@ export default function HomePage() {
           </div>
           {user ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Hi, <span className="text-green-400 font-semibold">{user.name?.split(" ")[0]}</span></span>
-              <span className="rounded-full bg-yellow-500/20 border border-yellow-500/40 px-2 py-0.5 text-xs font-bold text-yellow-400">🪙 {user.coins ?? 0}</span>
+              {/* avatar + name */}
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-xs font-bold text-white shadow">
+                  {user.name?.charAt(0).toUpperCase() ?? 'U'}
+                </div>
+                <div className="hidden sm:flex flex-col leading-none">
+                  <span className="text-[11px] font-semibold text-white">{user.name?.split(' ')[0]}</span>
+                  <span className="text-[10px] text-slate-500">Rs {balance.toFixed(2)}</span>
+                </div>
+              </div>
+              {/* balance chip */}
+              <span className="rounded-full bg-yellow-500/20 border border-yellow-500/40 px-2 py-0.5 text-xs font-bold text-yellow-400">
+                Rs {balance.toFixed(2)}
+              </span>
+              {/* deposit button */}
+              <button
+                onClick={() => setWalletModal('deposit')}
+                className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30"
+              >
+                + Deposit
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -75,12 +100,12 @@ export default function HomePage() {
         <section className="px-4 mt-5">
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800' },
-              { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800' },
-              { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800' },
-              { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900' },
+              { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800', action: () => setWalletModal('deposit') },
+              { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800', action: () => setWalletModal('withdraw') },
+              { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => {} },
+              { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900', action: () => {} },
             ].map((action) => (
-              <button key={action.label} className={`flex flex-col items-center justify-center gap-1 rounded-2xl bg-gradient-to-b ${action.color} p-3 active:scale-95 transition-transform`}>
+              <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-2xl bg-gradient-to-b ${action.color} p-3 active:scale-95 transition-transform`}>
                 <span className="text-xl">{action.emoji}</span>
                 <span className="text-[10px] font-semibold text-white/90">{action.label}</span>
               </button>
