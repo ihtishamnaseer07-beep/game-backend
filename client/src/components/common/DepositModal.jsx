@@ -26,6 +26,40 @@ const METHODS = [
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
+function PaymentLogo({ method }) {
+  if (method === 'easypaisa') {
+    return (
+      <svg viewBox="0 0 120 32" className="h-6 max-h-6 w-auto shrink-0" aria-hidden="true" role="img">
+        <rect x="1" y="1" width="118" height="30" rx="8" fill="#0b5f3a" />
+        <path d="M18 8h10c3 0 5 2 5 5s-2 5-5 5h-6v6h-4V8zm4 8h5c1 0 2-1 2-3s-1-3-2-3h-5v6z" fill="#ffffff" />
+        <path d="M42 8h14v3H46v4h8v3h-8v4h10v3H42V8z" fill="#c7ffd7" />
+        <path d="M62 8h4l5 8 5-8h4v18h-4V14l-5 8-5-8v12h-4V8z" fill="#ffffff" />
+        <path d="M96 8h4l8 18h-4.4l-1.6-3.8H94l-1.6 3.8H88L96 8zm4.7 11.8L98 13l-2.7 6.8h5.4z" fill="#8af0b0" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 120 32" className="h-6 max-h-6 w-auto shrink-0" aria-hidden="true" role="img">
+      <rect x="1" y="1" width="118" height="30" rx="8" fill="#7a1531" />
+      <path d="M14 8h5.8c4.9 0 8.2 2.7 8.2 6.9 0 4.3-3.4 7.1-8.2 7.1H18v4h-4V8zm4 11h1.4c2.7 0 4.4-1.3 4.4-4s-1.7-4-4.4-4H18v8z" fill="#ffffff" />
+      <path d="M41 8h4l5 14 5-14h4l-7 18h-4.1L41 8z" fill="#ffdce5" />
+      <path d="M64 8h12v3h-8v3h7v3h-7v6h-4V8z" fill="#ffffff" />
+      <path d="M81 8h4v18h-4V8zm7 0h4l7 10V8h4v18h-4l-7-10v10h-4V8z" fill="#ffdce5" />
+      <path d="M108 11h-4V8h10v3h-4v15h-4V11z" fill="#ffffff" />
+    </svg>
+  );
+}
+
+function PaymentText({ method, label }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <PaymentLogo method={method} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
 export default function DepositModal({ onClose }) {
   const [method, setMethod] = useState('easypaisa');
   const [amount, setAmount] = useState('');
@@ -103,7 +137,7 @@ export default function DepositModal({ onClose }) {
                     }`}
                   >
                     <span className="text-xl">{m.emoji}</span>
-                    {m.label}
+                    <PaymentText method={m.key} label={m.label} />
                   </button>
                 ))}
               </div>
@@ -115,11 +149,17 @@ export default function DepositModal({ onClose }) {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-400">Account Title</span>
-                  <span className="text-xs font-semibold text-white">{selected.title}</span>
+                  <span className="text-xs font-semibold text-white inline-flex items-center gap-2">
+                    <PaymentLogo method={selected.key} />
+                    <span>{selected.title}</span>
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400">Number / IBAN</span>
-                  <span className="text-xs font-mono font-bold text-yellow-400 select-all">{selected.account}</span>
+                  <span className="inline-flex items-center gap-2 text-xs font-mono font-bold text-yellow-400 select-all">
+                    <PaymentLogo method={selected.key} />
+                    <span>{selected.account}</span>
+                  </span>
                 </div>
               </div>
             </div>
