@@ -25,19 +25,21 @@ function App() {
         <SoundProvider>
           <MobileGuard>
           <Router>
-            <div className="min-h-screen bg-slate-950 text-slate-100 scroll-smooth overflow-y-auto overscroll-y-contain">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
-                <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
-                <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
-                <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
-                <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-              </Routes>
-            </div>
+            <main className="min-h-screen w-full bg-slate-950 text-slate-100 overflow-x-hidden overflow-y-auto overscroll-y-auto scroll-smooth [-webkit-overflow-scrolling:touch]">
+              <div className="min-h-screen pb-20">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
+                  <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
+                  <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
+                  <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+                  <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                </Routes>
+              </div>
+            </main>
           </Router>
           </MobileGuard>
         </SoundProvider>

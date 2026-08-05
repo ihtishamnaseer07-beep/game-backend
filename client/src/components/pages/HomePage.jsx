@@ -101,7 +101,7 @@ export default function HomePage() {
   const sectionLabel = LABEL_BY_CATEGORY[activeCategory] || '🔥 Hot';
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden overflow-y-auto overscroll-y-contain bg-slate-950 text-slate-100 pb-24 scroll-smooth">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 scroll-smooth [-webkit-overflow-scrolling:touch]">
       {modal && <AuthModal mode={modal} onClose={closeModal} />}
       {walletModal === 'deposit' && <DepositModal onClose={closeWallet} />}
       {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={closeWallet} />}
