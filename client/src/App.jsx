@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './components/pages/HomePage';
 import TeamSelectionPage from './components/pages/TeamSelectionPage';
 import CharacterSelectionPage from './components/pages/CharacterSelectionPage';
@@ -16,7 +16,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AppSettingsProvider, useAppSettings } from './context/AppSettingsContext';
 import { matchesSuperAdminIdentity } from './security/adminSecurity';
-import MobileGuard from './components/common/MobileGuard';
 
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
@@ -35,7 +34,7 @@ function AdminProtectedRoute({ children }) {
   }
 
   if (!ownerIdentityMatched || !isSuperAdmin) {
-    return <Navigate to="/" replace state={{ accessDenied: '404 - Access Denied' }} />;
+    return <AdminLoginPage />;
   }
 
   return children;
@@ -92,13 +91,6 @@ function LaunchSplash() {
   );
 }
 
-function RouteAwareMobileGuard({ children }) {
-  const location = useLocation();
-  const allowDesktop = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
-
-  return <MobileGuard allowDesktop={allowDesktop}>{children}</MobileGuard>;
-}
-
 function App() {
   return (
     <AuthProvider>
@@ -106,11 +98,11 @@ function App() {
         <AppSettingsProvider>
         <SoundProvider>
           <Router>
-            <RouteAwareMobileGuard>
             <LaunchSplash />
             <main className="min-h-screen w-full flex flex-col overflow-y-auto pb-24 bg-slate-950 text-slate-100 overflow-x-hidden scroll-smooth [-webkit-overflow-scrolling:touch]">
               <Routes>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<AdminProtectedRoute><AdminControlPanelPage /></AdminProtectedRoute>} />
+                <Route path="/home" element={<HomePage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
                 <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
@@ -123,7 +115,6 @@ function App() {
               </Routes>
             </main>
             <FloatingSupportButton />
-            </RouteAwareMobileGuard>
           </Router>
         </SoundProvider>
         </AppSettingsProvider>
