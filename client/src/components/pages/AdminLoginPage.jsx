@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth';
 import { useAuth } from '../../context/AuthContext';
-import SmsOtpModal from '../common/SmsOtpModal';
 import { firebaseAuth } from '../../firebase';
 import {
   getConfiguredAdminEmail,
@@ -16,10 +21,15 @@ import {
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { firebaseUser, setAdminSession, clearAdminSession } = useAuth();
-  const [showOtpModal, setShowOtpModal] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const confirmationResultRef = useRef(null);
+  const recaptchaVerifierRef = useRef(null);
   const adminEmail = getConfiguredAdminEmail();
   const adminPhone = getConfiguredAdminPhone();
 
@@ -27,7 +37,34 @@ export default function AdminLoginPage() {
     if (!adminEmail && !adminPhone) {
       setError('Admin identity is not configured.');
     }
+
+    if (!phoneInput && adminPhone) {
+      setPhoneInput(adminPhone);
+    }
   }, [adminEmail, adminPhone]);
+
+  useEffect(() => () => {
+    if (recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current.clear();
+      recaptchaVerifierRef.current = null;
+    }
+  }, []);
+
+  const toExactPhone = (value = '') => {
+    const normalized = normalizePhone(value || '');
+    return normalized.startsWith('+') ? normalized : `+${normalized}`;
+  };
+
+  const getRecaptchaVerifier = async () => {
+    if (!recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+      await recaptchaVerifierRef.current.render();
+    }
+
+    return recaptchaVerifierRef.current;
+  };
 
   const establishSession = ({ email = '', phone = '', provider = '' }) => {
     setAdminSession({
@@ -44,10 +81,10 @@ export default function AdminLoginPage() {
     navigate('/admin', { replace: true });
   };
 
-  const blockUnauthorized = async (message = '404 - Access Denied') => {
+  const blockUnauthorized = async (message = 'Access Denied') => {
     clearAdminSession();
     await signOut(firebaseAuth).catch(() => {});
-    navigate('/', { replace: true, state: { accessDenied: message } });
+    setError(message);
   };
 
   const loginWithGoogle = async () => {
@@ -64,8 +101,7 @@ export default function AdminLoginPage() {
       const matched = matchesSuperAdminIdentity({ email, phone });
 
       if (!matched) {
-        setError('404 - Access Denied');
-        await blockUnauthorized('404 - Access Denied');
+        await blockUnauthorized('Access Denied: unauthorized Google account.');
         return;
       }
 
@@ -77,7 +113,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  const openOtp = () => {
+  const sendOtp = async () => {
     setError('');
     setStatus('');
 
@@ -86,26 +122,84 @@ export default function AdminLoginPage() {
       return;
     }
 
-    setShowOtpModal(true);
-  };
-
-  const handleVerified = async ({ phone }) => {
-    const normalizedPhone = normalizePhone(phone || firebaseUser?.phoneNumber || '');
-    const normalizedEmail = normalizeEmail(firebaseUser?.email || '');
-    const matched = matchesSuperAdminIdentity({
-      phone: normalizedPhone,
-      email: normalizedEmail,
-    });
-
-    if (!matched) {
-      setShowOtpModal(false);
-      setError('404 - Access Denied');
-      await blockUnauthorized('404 - Access Denied');
+    const normalizedPhone = toExactPhone(phoneInput || adminPhone);
+    if (normalizedPhone !== adminPhone) {
+      setError('Access Denied: only authorized owner phone is allowed.');
       return;
     }
 
-    setShowOtpModal(false);
-    establishSession({ email: normalizedEmail, phone: normalizedPhone, provider: 'phone-otp' });
+    setLoadingOtp(true);
+
+    try {
+      const verifier = await getRecaptchaVerifier();
+      confirmationResultRef.current = await signInWithPhoneNumber(firebaseAuth, normalizedPhone, verifier);
+      setOtpSent(true);
+      setStatus(`OTP sent to ${normalizedPhone}. Enter 6-digit code.`);
+    } catch (otpError) {
+      setError(otpError.message || 'Failed to send OTP.');
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+    } finally {
+      setLoadingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    setError('');
+    setStatus('');
+
+    if (!confirmationResultRef.current) {
+      setError('Send OTP first.');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otpCode.trim())) {
+      setError('Enter a valid 6-digit OTP code.');
+      return;
+    }
+
+    setLoadingOtp(true);
+
+    try {
+      const credential = await confirmationResultRef.current.confirm(otpCode.trim());
+      const verifiedUser = credential?.user;
+      const normalizedPhone = toExactPhone(verifiedUser?.phoneNumber || phoneInput || '');
+      const normalizedEmail = normalizeEmail(verifiedUser?.email || firebaseUser?.email || '');
+      const matched = matchesSuperAdminIdentity({
+        phone: normalizedPhone,
+        email: normalizedEmail,
+      });
+
+      if (!matched) {
+        await blockUnauthorized('Access Denied: unauthorized phone account.');
+        return;
+      }
+
+      establishSession({
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        provider: 'phone-otp',
+      });
+    } catch (verifyError) {
+      setError(verifyError.message || 'OTP verification failed.');
+    } finally {
+      setLoadingOtp(false);
+    }
+  };
+
+  const resetOtp = () => {
+    setOtpSent(false);
+    setOtpCode('');
+    setStatus('');
+    setError('');
+    confirmationResultRef.current = null;
+
+    if (recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current.clear();
+      recaptchaVerifierRef.current = null;
+    }
   };
 
   return (
@@ -123,7 +217,7 @@ export default function AdminLoginPage() {
               <p className="font-semibold text-white">Security checks enabled</p>
               <p className="mt-1">1) Firebase auth is required.</p>
               <p>2) Identity must match the authorized owner exactly.</p>
-              <p>3) Unauthorized access is blocked with 404 - Access Denied.</p>
+              <p>3) Unauthorized access is blocked with Access Denied.</p>
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-xs text-slate-300">
@@ -144,26 +238,58 @@ export default function AdminLoginPage() {
               {loadingGoogle ? 'Signing in with Google...' : 'Continue with Google'}
             </button>
 
-            <button
-              type="button"
-              onClick={openOtp}
-              className="w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:from-cyan-400 hover:to-emerald-400"
-            >
-              Continue with Phone OTP
-            </button>
-          </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+              <p className="text-sm font-semibold text-white">Phone OTP Login</p>
+              <div className="mt-3">
+                <input
+                  value={phoneInput}
+                  onChange={(event) => setPhoneInput(event.target.value)}
+                  placeholder="+966593686007"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-500"
+                />
+              </div>
 
-          {showOtpModal && (
-            <SmsOtpModal
-              title="Admin Phone OTP Verification"
-              subtitle="Verify using the authorized owner phone number to unlock admin access."
-              phone={adminPhone || firebaseUser?.phoneNumber || ''}
-              defaultCountryCode={adminPhone.startsWith('+966') ? '+966' : '+92'}
-              confirmLabel="Verify Super Admin"
-              onClose={() => setShowOtpModal(false)}
-              onVerified={handleVerified}
-            />
-          )}
+              {!otpSent ? (
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={loadingOtp}
+                  className="mt-3 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:from-cyan-400 hover:to-emerald-400 disabled:opacity-60"
+                >
+                  {loadingOtp ? 'Sending OTP...' : 'Send OTP'}
+                </button>
+              ) : (
+                <>
+                  <div className="mt-3">
+                    <input
+                      value={otpCode}
+                      onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="Enter 6-digit OTP"
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-500"
+                    />
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={verifyOtp}
+                      disabled={loadingOtp}
+                      className="w-full rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-emerald-400 disabled:opacity-60"
+                    >
+                      {loadingOtp ? 'Verifying...' : 'Verify OTP'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetOtp}
+                      className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </>
+              )}
+              <div id="recaptcha-container" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
