@@ -216,7 +216,7 @@ function AuthPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => navigate('/admin-login')}
+                onClick={() => navigate('/admin')}
                 className="rounded-full border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-500 hover:text-white"
               >
                 Admin Login

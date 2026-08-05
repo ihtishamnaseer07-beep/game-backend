@@ -1,4 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { firebaseAuth } from '../firebase';
+import {
+  ADMIN_SESSION_STORAGE_KEY,
+  isAdminSessionValid,
+  matchesSuperAdminIdentity,
+  normalizeEmail,
+  normalizePhone,
+} from '../security/adminSecurity';
 
 const AuthContext = createContext(null);
 
@@ -40,6 +49,30 @@ export function AuthProvider({ children }) {
     const saved = localStorage.getItem('phoneVerification');
     return saved ? JSON.parse(saved) : null;
   });
+  const [firebaseUser, setFirebaseUser] = useState(() => {
+    const current = firebaseAuth.currentUser;
+    return current ? {
+      uid: current.uid,
+      phoneNumber: current.phoneNumber || '',
+      email: current.email || '',
+    } : null;
+  });
+  const [adminSession, setAdminSessionState] = useState(() => {
+    const saved = localStorage.getItem(ADMIN_SESSION_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
+      setFirebaseUser(nextUser ? {
+        uid: nextUser.uid,
+        phoneNumber: nextUser.phoneNumber || '',
+        email: nextUser.email || '',
+      } : null);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -64,6 +97,27 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('phoneVerification');
     }
   }, [phoneVerification]);
+
+  useEffect(() => {
+    if (adminSession) {
+      localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(adminSession));
+    } else {
+      localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+    }
+  }, [adminSession]);
+
+  useEffect(() => {
+    if (!adminSession) return;
+
+    const valid = isAdminSessionValid(adminSession, {
+      phone: user?.phone || firebaseUser?.phoneNumber || '',
+      email: user?.email || firebaseUser?.email || '',
+    });
+
+    if (!valid) {
+      setAdminSessionState(null);
+    }
+  }, [adminSession, firebaseUser, user]);
 
   const login = (authToken, authUser) => {
     let mergedUser = normalizeAuthUser(authUser);
@@ -91,15 +145,51 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setPhoneVerificationState(null);
+    setAdminSessionState(null);
+    signOut(firebaseAuth).catch(() => {});
   };
 
   const setPhoneVerification = (verification) => {
     setPhoneVerificationState(verification || null);
   };
 
+  const setAdminSession = (session) => {
+    setAdminSessionState(session || null);
+  };
+
+  const clearAdminSession = () => {
+    setAdminSessionState(null);
+  };
+
+  const isSuperAdmin = useMemo(() => {
+    const effectivePhone = normalizePhone(user?.phone || firebaseUser?.phoneNumber || '');
+    const effectiveEmail = normalizeEmail(user?.email || firebaseUser?.email || '');
+    const hasIdentity = matchesSuperAdminIdentity({ phone: effectivePhone, email: effectiveEmail });
+
+    if (!hasIdentity || !adminSession) return false;
+
+    return isAdminSessionValid(adminSession, {
+      phone: effectivePhone,
+      email: effectiveEmail,
+    });
+  }, [adminSession, firebaseUser, user?.email, user?.phone]);
+
   const value = useMemo(
-    () => ({ user, token, phoneVerification, login, logout, updateUser, setPhoneVerification }),
-    [user, token, phoneVerification],
+    () => ({
+      user,
+      token,
+      phoneVerification,
+      firebaseUser,
+      adminSession,
+      isSuperAdmin,
+      login,
+      logout,
+      updateUser,
+      setPhoneVerification,
+      setAdminSession,
+      clearAdminSession,
+    }),
+    [user, token, phoneVerification, firebaseUser, adminSession, isSuperAdmin],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

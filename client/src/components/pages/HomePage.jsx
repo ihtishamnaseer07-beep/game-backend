@@ -1,10 +1,11 @@
-﻿import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
 import { useAppSettings } from '../../context/AppSettingsContext';
 import { API_URL } from '../../config';
 import BannerSlider from '../common/BannerSlider';
+import DynamicGameContainer from '../common/DynamicGameContainer';
 import CategoryNav from '../common/CategoryNav';
 import GameCard from '../common/GameCard';
 import BottomNav from '../common/BottomNav';
@@ -72,6 +73,7 @@ const LABEL_BY_CATEGORY = {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('hot');
   const [modal, setModal]             = useState(null);   // 'login' | 'register'
   const [walletModal, setWalletModal]   = useState(null);   // 'deposit' | 'withdraw'
@@ -82,6 +84,7 @@ export default function HomePage() {
   const [rewardStatus, setRewardStatus] = useState(null);
   const [rewardLoading, setRewardLoading] = useState(false);
   const [spinReward, setSpinReward] = useState(null);
+  const [accessNotice, setAccessNotice] = useState('');
   const { settings } = useAppSettings();
   const { user, token, logout, updateUser } = useAuth();
   const { muted, toggleMute, playSound } = useSound();
@@ -89,6 +92,11 @@ export default function HomePage() {
   const logoUrl = settings?.gameLogoUrl || '/logo.png';
   const announcementText = settings?.announcementText || "Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!";
   const appTheme = settings?.appTheme || {};
+  const activeConfiguredGame = useMemo(() => {
+    const catalog = Array.isArray(settings?.gameCatalog) ? settings.gameCatalog : [];
+    if (!catalog.length) return null;
+    return catalog.find((game) => game?.isActive) || catalog[0];
+  }, [settings]);
 
   const loadRewardStatus = async () => {
     if (!token || !user?._id) return;
@@ -118,6 +126,12 @@ export default function HomePage() {
   useEffect(() => {
     loadRewardStatus();
   }, [token, user?._id]);
+
+  useEffect(() => {
+    if (!location.state?.accessDenied) return;
+    setAccessNotice(String(location.state.accessDenied));
+    navigate(location.pathname, { replace: true });
+  }, [location.pathname, location.state, navigate]);
 
   const handlePlay = (game) => {
     if (!user) { playSound('cancel'); setModal('login'); return; }
@@ -226,7 +240,7 @@ export default function HomePage() {
               {muted ? '🔇' : '🔊'}
             </button>
             <button
-              onClick={() => navigate('/admin-login')}
+              onClick={() => navigate('/admin')}
               className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-bold text-cyan-300 transition-all duration-150 ease-in-out hover:bg-cyan-500/25 active:scale-95 active:opacity-70"
             >
               Admin
@@ -259,7 +273,13 @@ export default function HomePage() {
         </div>
       </header>
       <div className="max-w-xl mx-auto pb-4">
+        {accessNotice && (
+          <div className="mx-3 mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300">
+            {accessNotice}
+          </div>
+        )}
         <BannerSlider bannerImages={settings?.bannerImages || []} />
+        <DynamicGameContainer game={activeConfiguredGame} balance={balance} />
         <CategoryNav active={activeCategory} onChange={(c) => { playSound('select'); setActiveCategory(c); }} />
         <section className="px-3 mt-3">
           <div className="flex items-center justify-between mb-2">
@@ -285,7 +305,7 @@ export default function HomePage() {
               { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800', action: () => setWalletModal('deposit') },
               { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800', action: () => setWalletModal('withdraw') },
               { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => setShowInvite(true) },
-              { label: 'Admin', emoji: '🛡️', color: 'from-slate-600 to-slate-900', action: () => navigate('/admin-login') },
+              { label: 'Admin', emoji: '🛡️', color: 'from-slate-600 to-slate-900', action: () => navigate('/admin') },
             ].map((action) => (
               <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-b ${action.color} p-2.5 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70`}>
                 <span className="text-lg">{action.emoji}</span>

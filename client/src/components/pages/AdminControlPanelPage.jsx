@@ -8,6 +8,7 @@ import { API_URL } from '../../config';
 const TABS = [
   { key: 'branding', label: 'App Design & Branding' },
   { key: 'payments', label: 'Payment Setup' },
+  { key: 'games', label: 'Manage Games (2D/3D)' },
   { key: 'users', label: 'User Balances & Requests' },
 ];
 
@@ -15,13 +16,9 @@ function formatMoney(value = 0) {
   return `Rs ${Number(value || 0).toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-function normalizePhone(value = '') {
-  return String(value || '').replace(/\s+/g, '');
-}
-
 export default function AdminControlPanelPage() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, isSuperAdmin, clearAdminSession } = useAuth();
   const { settings, loading, saveSettings } = useAppSettings();
   const [activeTab, setActiveTab] = useState('branding');
   const [saving, setSaving] = useState(false);
@@ -51,22 +48,11 @@ export default function AdminControlPanelPage() {
     bankNumber: '',
   });
 
+  const [gamesForm, setGamesForm] = useState([]);
+
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [balanceDrafts, setBalanceDrafts] = useState({});
-
-  const authorized = useMemo(() => {
-    const allowedEmails = (settings?.adminAuthorizedEmails || []).map((value) => String(value).trim().toLowerCase());
-    const allowedPhones = (settings?.adminAuthorizedPhones || []).map((value) => normalizePhone(value));
-    const userEmail = String(user?.email || '').trim().toLowerCase();
-    const userPhone = normalizePhone(user?.phone || '');
-
-    if (!allowedEmails.length && !allowedPhones.length) {
-      return user?.role === 'admin' || user?.role === 'superadmin';
-    }
-
-    return allowedEmails.includes(userEmail) || allowedPhones.includes(userPhone);
-  }, [settings, user]);
 
   const pendingDeposits = useMemo(() => requests.filter((request) => request.type === 'deposit' && request.status === 'pending'), [requests]);
   const pendingWithdrawals = useMemo(() => requests.filter((request) => request.type === 'withdrawal' && request.status === 'pending'), [requests]);
@@ -97,13 +83,23 @@ export default function AdminControlPanelPage() {
       bankTitle: settings.bankDetails?.accountTitle || '',
       bankNumber: settings.bankDetails?.accountNumber || '',
     });
+
+    setGamesForm((settings.gameCatalog || []).map((game) => ({
+      id: game.id,
+      title: game.title || '',
+      gameType: game.gameType || '2d',
+      thumbnailUrl: game.thumbnailUrl || '',
+      sourceUrl: game.sourceUrl || '',
+      renderMode: game.renderMode || 'iframe',
+      isActive: Boolean(game.isActive),
+    })));
   }, [settings]);
 
   useEffect(() => {
-    if (!token || !authorized) return;
+    if (!token || !isSuperAdmin) return;
 
     loadUsersAndRequests();
-  }, [token, authorized]);
+  }, [token, isSuperAdmin]);
 
   const loadUsersAndRequests = async () => {
     try {
@@ -183,6 +179,80 @@ export default function AdminControlPanelPage() {
     }
   };
 
+  const addGameRow = () => {
+    setGamesForm((prev) => ([
+      ...prev,
+      {
+        id: `game-${Date.now()}`,
+        title: '',
+        gameType: '2d',
+        thumbnailUrl: '',
+        sourceUrl: '',
+        renderMode: 'iframe',
+        isActive: prev.length === 0,
+      },
+    ]));
+  };
+
+  const updateGameRow = (id, patch) => {
+    setGamesForm((prev) => prev.map((game) => (game.id === id ? { ...game, ...patch } : game)));
+  };
+
+  const removeGameRow = (id) => {
+    setGamesForm((prev) => {
+      const remaining = prev.filter((game) => game.id !== id);
+      if (remaining.length && !remaining.some((game) => game.isActive)) {
+        remaining[0] = { ...remaining[0], isActive: true };
+      }
+      return remaining;
+    });
+  };
+
+  const setActiveGameRow = (id) => {
+    setGamesForm((prev) => prev.map((game) => ({ ...game, isActive: game.id === id })));
+  };
+
+  const saveGames = async () => {
+    if (!gamesForm.length) {
+      setMessage('Add at least one game before saving.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      let hasActive = false;
+      const sanitized = gamesForm.map((game, index) => {
+        const shouldActivate = game.isActive && !hasActive;
+        if (shouldActivate) hasActive = true;
+
+        return {
+          id: String(game.id || `game-${index + 1}`),
+          title: String(game.title || `Game ${index + 1}`).trim(),
+          gameType: game.gameType === '3d-webgl' ? '3d-webgl' : '2d',
+          thumbnailUrl: String(game.thumbnailUrl || '').trim(),
+          sourceUrl: String(game.sourceUrl || '').trim(),
+          renderMode: game.renderMode === 'webgl-path' ? 'webgl-path' : 'iframe',
+          isActive: shouldActivate,
+        };
+      });
+
+      if (!hasActive && sanitized.length) {
+        sanitized[0].isActive = true;
+      }
+
+      await saveSettings({
+        gameCatalog: sanitized,
+      }, user?.email || user?.phone || 'admin');
+
+      setMessage('Game catalog saved. Active game will load on player screen automatically.');
+    } catch (error) {
+      setMessage(error.message || 'Failed to save game catalog.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const updateUserBalance = async (userId) => {
     const draft = Number(balanceDrafts[userId]);
     const currentBalance = Number(users.find((item) => item._id === userId)?.coins || 0);
@@ -235,15 +305,15 @@ export default function AdminControlPanelPage() {
     return <div className="min-h-screen bg-slate-950 p-10 text-white">Loading Firestore settings...</div>;
   }
 
-  if (!authorized) {
+  if (!isSuperAdmin) {
     return (
       <div className="min-h-screen bg-slate-950 p-10 text-white">
         <div className="mx-auto max-w-xl rounded-3xl border border-rose-500/30 bg-rose-500/10 p-6">
           <h1 className="text-2xl font-black text-rose-300">Access Denied</h1>
           <p className="mt-3 text-sm text-slate-300">
-            Your account is not listed in authorized admin email/phone settings.
+            Super-admin verification is required for this dashboard.
           </p>
-          <button onClick={() => navigate('/')} className="mt-5 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">Go Home</button>
+          <button onClick={() => { clearAdminSession(); navigate('/'); }} className="mt-5 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">Go Home</button>
         </div>
       </div>
     );
@@ -363,6 +433,75 @@ export default function AdminControlPanelPage() {
 
             <button onClick={savePaymentDetails} disabled={saving} className="mt-5 rounded-xl bg-emerald-500 px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-60">
               {saving ? 'Saving...' : 'Save Payment Details'}
+            </button>
+          </section>
+        )}
+
+        {activeTab === 'games' && (
+          <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Manage Games (2D/3D)</h2>
+                <p className="mt-1 text-sm text-slate-400">Add, update, and set the active game for the main player screen.</p>
+              </div>
+              <button onClick={addGameRow} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">+ Add Game</button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              {gamesForm.map((game, index) => (
+                <article key={game.id} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-sm font-bold text-white">Game #{index + 1}</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveGameRow(game.id)}
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${game.isActive ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+                      >
+                        {game.isActive ? 'Active on Home' : 'Set Active'}
+                      </button>
+                      <button onClick={() => removeGameRow(game.id)} className="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold text-white">Remove</button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-sm text-slate-300">Game Title
+                      <input value={game.title} onChange={(event) => updateGameRow(game.id, { title: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2" />
+                    </label>
+
+                    <label className="text-sm text-slate-300">Game Type
+                      <select value={game.gameType} onChange={(event) => updateGameRow(game.id, { gameType: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2">
+                        <option value="2d">2D</option>
+                        <option value="3d-webgl">3D WebGL</option>
+                      </select>
+                    </label>
+
+                    <label className="text-sm text-slate-300">Thumbnail Image URL
+                      <input value={game.thumbnailUrl} onChange={(event) => updateGameRow(game.id, { thumbnailUrl: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2" />
+                    </label>
+
+                    <label className="text-sm text-slate-300">Render Mode
+                      <select value={game.renderMode} onChange={(event) => updateGameRow(game.id, { renderMode: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2">
+                        <option value="iframe">iFrame URL</option>
+                        <option value="webgl-path">WebGL Path</option>
+                      </select>
+                    </label>
+
+                    <label className="text-sm text-slate-300 md:col-span-2">Game Source URL / iFrame / WebGL Path
+                      <input value={game.sourceUrl} onChange={(event) => updateGameRow(game.id, { sourceUrl: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2" />
+                    </label>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {!gamesForm.length && (
+              <p className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                No games configured yet. Add your first 2D/3D game entry.
+              </p>
+            )}
+
+            <button onClick={saveGames} disabled={saving} className="mt-5 rounded-xl bg-emerald-500 px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-60">
+              {saving ? 'Saving...' : 'Save Game Manager Settings'}
             </button>
           </section>
         )}

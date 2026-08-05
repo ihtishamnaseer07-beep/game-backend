@@ -50,6 +50,17 @@ export const DEFAULT_APP_SETTINGS = {
     accountNumber: 'PK36 MEZN 0001 0103 0101 23',
   },
   bannerImages: [],
+  gameCatalog: [
+    {
+      id: 'dragon-vs-tiger-default',
+      title: 'Dragon vs Tiger',
+      gameType: '2d',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1518131678677-aea1f2d7b0f4?auto=format&fit=crop&w=1200&q=80',
+      sourceUrl: '/',
+      renderMode: 'iframe',
+      isActive: true,
+    },
+  ],
   adminAuthorizedEmails: [],
   adminAuthorizedPhones: [],
 };

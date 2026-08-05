@@ -23,20 +23,17 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminProtectedRoute({ children }) {
-  const { user } = useAuth();
-  const { settings } = useAppSettings();
+  const { firebaseUser, isSuperAdmin } = useAuth();
 
-  const allowedEmails = (settings?.adminAuthorizedEmails || []).map((value) => String(value).trim().toLowerCase());
-  const allowedPhones = (settings?.adminAuthorizedPhones || []).map((value) => String(value).replace(/\s+/g, ''));
-  const userEmail = String(user?.email || '').trim().toLowerCase();
-  const userPhone = String(user?.phone || '').replace(/\s+/g, '');
-  const fallbackRoleAccess = user?.role === 'admin' || user?.role === 'superadmin';
+  if (!firebaseUser) {
+    return <AdminLoginPage />;
+  }
 
-  const hasAccess = (allowedEmails.length || allowedPhones.length)
-    ? allowedEmails.includes(userEmail) || allowedPhones.includes(userPhone)
-    : fallbackRoleAccess;
+  if (!isSuperAdmin) {
+    return <Navigate to="/" replace state={{ accessDenied: '404 - Access Denied' }} />;
+  }
 
-  return hasAccess ? children : <Navigate to="/admin-login" replace />;
+  return children;
 }
 
 function LaunchSplash() {
@@ -103,13 +100,13 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/admin-login" element={<AdminLoginPage />} />
+                <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
                 <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
                 <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
                 <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><AdminProtectedRoute><AdminControlPanelPage /></AdminProtectedRoute></ProtectedRoute>} />
+                <Route path="/admin" element={<AdminProtectedRoute><AdminControlPanelPage /></AdminProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               </Routes>
             </main>
