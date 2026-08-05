@@ -5,7 +5,7 @@ export default function GameCard({ title, provider, color = 'from-slate-700 to-s
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl cursor-pointer select-none"
+      className="relative overflow-hidden rounded-2xl cursor-pointer select-none touch-manipulation transition-all duration-150 ease-in-out active:scale-[0.99] active:opacity-95"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onTouchStart={() => setHovered(true)}
@@ -18,13 +18,13 @@ export default function GameCard({ title, provider, color = 'from-slate-700 to-s
 
       {/* hover overlay with play button */}
       <div
-        className={`absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 transition-opacity duration-200 ${
+        className={`absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 transition-opacity duration-150 ease-in-out ${
           hovered ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <button
           onClick={onPlay}
-          className="rounded-full bg-green-500 hover:bg-green-400 active:scale-95 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-green-500/40 transition-all"
+          className="rounded-full bg-green-500 hover:bg-green-400 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-green-500/40 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
         >
           ▶ Play
         </button>

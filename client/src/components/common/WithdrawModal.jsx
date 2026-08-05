@@ -37,10 +37,10 @@ export default function WithdrawModal({ balance = 0, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[90vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
 
         {/* header */}
         <div className="sticky top-0 bg-slate-900 flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800 z-10">
@@ -50,7 +50,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors text-lg"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all duration-150 ease-in-out text-lg active:scale-95 active:opacity-70"
           >
             ×
           </button>
@@ -82,7 +82,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
                     key={g.key}
                     type="button"
                     onClick={() => setGateway(g.key)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-semibold transition-all ${
+                    className={`flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
                       gateway === g.key
                         ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                         : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-500'
@@ -148,7 +148,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all"
+              className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 active:opacity-70 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all duration-150 ease-in-out"
             >
               🏧 Submit Withdrawal Request
             </button>

@@ -96,15 +96,15 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   return (
     // backdrop
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl p-5 max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl p-5 max-h-[92vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
 
         {/* close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors text-lg leading-none"
+          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all duration-150 ease-in-out text-lg leading-none active:scale-95 active:opacity-70"
         >
           ×
         </button>
@@ -167,7 +167,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
 
           {/* forgot password */}
           {mode === 'login' && (
-            <button type="button" className="text-xs text-green-400 hover:text-green-300 text-right -mt-2 transition-colors">
+            <button type="button" className="text-xs text-green-400 hover:text-green-300 text-right -mt-2 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">
               Forgot Password?
             </button>
           )}
@@ -188,7 +188,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 w-full rounded-xl bg-green-500 hover:bg-green-400 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all"
+            className="mt-1 w-full rounded-xl bg-green-500 hover:bg-green-400 active:scale-95 active:opacity-70 disabled:opacity-60 disabled:cursor-not-allowed py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all duration-150 ease-in-out"
           >
             {loading ? '⏳ Please wait…' : mode === 'login' ? '🔑 Login' : '🚀 Create Account'}
           </button>
@@ -198,13 +198,13 @@ export default function AuthModal({ mode: initialMode, onClose }) {
         <p className="mt-4 text-center text-xs text-slate-500">
           {mode === 'login' ? (
             <>Don't have an account?{' '}
-              <button onClick={() => switchMode('register')} className="text-green-400 hover:text-green-300 font-semibold transition-colors">
+              <button onClick={() => switchMode('register')} className="text-green-400 hover:text-green-300 font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">
                 Register
               </button>
             </>
           ) : (
             <>Already have an account?{' '}
-              <button onClick={() => switchMode('login')} className="text-green-400 hover:text-green-300 font-semibold transition-colors">
+              <button onClick={() => switchMode('login')} className="text-green-400 hover:text-green-300 font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">
                 Login
               </button>
             </>

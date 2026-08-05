@@ -45,10 +45,10 @@ export default function LiveChatModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700/60 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden" style={{ height: 'min(85vh, 520px)' }}>
+      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700/60 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain" style={{ height: 'min(85vh, 520px)' }}>
 
         {/* header */}
         <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0">
@@ -62,7 +62,7 @@ export default function LiveChatModal({ onClose }) {
               <span className="text-[10px] text-green-400">Online — replies instantly</span>
             </div>
           </div>
-          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white text-base transition-colors">×</button>
+          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white text-base transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">×</button>
         </div>
 
         {/* messages */}
@@ -90,7 +90,7 @@ export default function LiveChatModal({ onClose }) {
         {/* quick replies */}
         <div className="flex gap-2 overflow-x-auto px-4 py-2 border-t border-slate-800 scrollbar-none shrink-0">
           {['Deposit Help', 'Withdrawal', 'Account Issue', 'Game Rules'].map((q) => (
-            <button key={q} onClick={() => { setInput(q); }} className="shrink-0 rounded-full border border-slate-600 bg-slate-800/60 px-3 py-1 text-xs text-slate-300 hover:border-green-500/60 hover:text-green-400 transition-colors">
+            <button key={q} onClick={() => { setInput(q); }} className="shrink-0 rounded-full border border-slate-600 bg-slate-800/60 px-3 py-1 text-xs text-slate-300 hover:border-green-500/60 hover:text-green-400 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">
               {q}
             </button>
           ))}
@@ -103,11 +103,11 @@ export default function LiveChatModal({ onClose }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
             placeholder="Type a message…"
-            className="flex-1 rounded-xl bg-slate-800 border border-slate-700 focus:border-green-500 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition-all"
+            className="flex-1 rounded-xl bg-slate-800 border border-slate-700 focus:border-green-500 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition-all duration-150 ease-in-out"
           />
           <button
             onClick={sendMessage}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500 hover:bg-green-400 text-white text-base transition-colors active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500 hover:bg-green-400 text-white text-base transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
           >
             ➤
           </button>

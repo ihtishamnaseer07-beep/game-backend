@@ -65,12 +65,12 @@ const categories = [
 
 export default function CategoryNav({ active, onChange }) {
   return (
-    <div className="flex gap-2 overflow-x-auto px-3 py-2 scrollbar-none">
+    <div className="flex gap-2 overflow-x-auto px-3 py-2 scrollbar-none scroll-smooth snap-x snap-mandatory overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
       {categories.map((cat) => (
         <button
           key={cat.key}
           onClick={() => onChange(cat.key)}
-          className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all duration-150 ease-in-out snap-center active:scale-95 active:opacity-70 ${
             active === cat.key
               ? `${cat.activeBg} ${cat.color}`
               : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600 hover:text-slate-200'

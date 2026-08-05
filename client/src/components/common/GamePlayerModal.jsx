@@ -394,10 +394,10 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/90 p-2 backdrop-blur-sm [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4">
       <div
         ref={containerRef}
-        className="relative flex flex-col w-full max-w-2xl bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-700/60"
+        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-950 shadow-2xl"
         style={{ height: 'min(92vh, 640px)' }}
       >
         <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
@@ -415,7 +415,7 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
             </div>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 hover:text-red-300 text-base font-bold transition-all"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-red-500/40 bg-red-500/20 text-base font-bold text-red-400 transition-all duration-150 ease-in-out hover:bg-red-500/40 hover:text-red-300 active:scale-95 active:opacity-70"
               title="Exit Game"
             >
               ✕
@@ -430,7 +430,7 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-t border-slate-800 shrink-0">
           <button
             onClick={onDeposit}
-            className="flex items-center gap-1.5 rounded-xl bg-green-500/20 border border-green-500/40 hover:bg-green-500/30 px-3 py-2 text-xs font-bold text-green-400 transition-colors"
+            className="flex items-center gap-1.5 rounded-xl border border-green-500/40 bg-green-500/20 px-3 py-2 text-xs font-bold text-green-400 transition-all duration-150 ease-in-out hover:bg-green-500/30 active:scale-95 active:opacity-70"
           >
             💰 Deposit More
           </button>
@@ -438,14 +438,14 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMuted((current) => !current)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-base transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-base text-slate-300 transition-all duration-150 ease-in-out hover:bg-slate-700 active:scale-95 active:opacity-70"
               title={muted ? 'Unmute' : 'Mute'}
             >
               {muted ? '🔇' : '🔊'}
             </button>
             <button
               onClick={toggleFullscreen}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-base transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-base text-slate-300 transition-all duration-150 ease-in-out hover:bg-slate-700 active:scale-95 active:opacity-70"
               title={fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
             >
               {fullscreen ? '⊡' : '⛶'}

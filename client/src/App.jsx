@@ -25,7 +25,7 @@ function App() {
         <SoundProvider>
           <MobileGuard>
           <Router>
-            <div className="min-h-screen bg-slate-950 text-slate-100">
+            <div className="min-h-screen bg-slate-950 text-slate-100 scroll-smooth overflow-y-auto overscroll-y-contain">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/auth" element={<AuthPage />} />

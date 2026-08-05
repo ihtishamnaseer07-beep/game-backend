@@ -8,13 +8,13 @@
 
 export default function BottomNav({ activeTab = "home", onTabChange }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700/60 flex items-end justify-around px-2 pb-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-around border-t border-slate-700/60 bg-slate-900 px-2 pb-1 [-webkit-overflow-scrolling:touch]">
       {TABS.map((tab) =>
         tab.center ? (
           <button
             key={tab.key}
             onClick={() => onTabChange?.(tab.key)}
-            className={`-mt-4 flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg transition-transform active:scale-95 ${activeTab === tab.key ? "bg-green-500 text-white shadow-green-500/40" : "bg-green-600 text-white hover:bg-green-500 shadow-green-600/30"}`}
+            className={`-mt-4 flex h-14 w-14 flex-col items-center justify-center rounded-full shadow-lg transition-all duration-150 ease-in-out touch-manipulation active:scale-95 active:opacity-70 ${activeTab === tab.key ? "bg-green-500 text-white shadow-green-500/40" : "bg-green-600 text-white hover:bg-green-500 shadow-green-600/30"}`}
           >
             {tab.icon}
           </button>
@@ -22,7 +22,7 @@ export default function BottomNav({ activeTab = "home", onTabChange }) {
           <button
             key={tab.key}
             onClick={() => onTabChange?.(tab.key)}
-            className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${activeTab === tab.key ? "text-green-400" : "text-slate-400 hover:text-slate-200"}`}
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-all duration-150 ease-in-out touch-manipulation active:scale-95 active:opacity-70 ${activeTab === tab.key ? "text-green-400" : "text-slate-400 hover:text-slate-200"}`}
           >
             {tab.icon}
             <span>{tab.label}</span>

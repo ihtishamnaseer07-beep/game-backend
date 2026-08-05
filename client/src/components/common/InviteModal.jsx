@@ -23,10 +23,10 @@ export default function InviteModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
 
         {/* header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
@@ -36,7 +36,7 @@ export default function InviteModal({ onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors text-lg"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all duration-150 ease-in-out text-lg active:scale-95 active:opacity-70"
           >
             ×
           </button>
@@ -67,7 +67,7 @@ export default function InviteModal({ onClose }) {
               />
               <button
                 onClick={handleCopy}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
                   copied
                     ? 'bg-green-500/20 border border-green-500/40 text-green-400'
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
@@ -86,7 +86,7 @@ export default function InviteModal({ onClose }) {
                 href={`https://wa.me/?text=${shareText}%20${shareUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 py-3 text-xs font-semibold text-[#25D366] transition-colors"
+                className="flex flex-col items-center gap-1 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 py-3 text-xs font-semibold text-[#25D366] transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
               >
                 <span className="text-xl">💬</span>
                 WhatsApp
@@ -95,7 +95,7 @@ export default function InviteModal({ onClose }) {
                 href={`https://t.me/share/url?url=${shareUrl}&text=${shareText}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 rounded-xl bg-[#229ED9]/10 border border-[#229ED9]/30 hover:bg-[#229ED9]/20 py-3 text-xs font-semibold text-[#229ED9] transition-colors"
+                className="flex flex-col items-center gap-1 rounded-xl bg-[#229ED9]/10 border border-[#229ED9]/30 hover:bg-[#229ED9]/20 py-3 text-xs font-semibold text-[#229ED9] transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
               >
                 <span className="text-xl">✈️</span>
                 Telegram
@@ -104,7 +104,7 @@ export default function InviteModal({ onClose }) {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 py-3 text-xs font-semibold text-[#1877F2] transition-colors"
+                className="flex flex-col items-center gap-1 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 hover:bg-[#1877F2]/20 py-3 text-xs font-semibold text-[#1877F2] transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
               >
                 <span className="text-xl">👥</span>
                 Facebook

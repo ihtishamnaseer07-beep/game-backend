@@ -101,7 +101,7 @@ export default function HomePage() {
   const sectionLabel = LABEL_BY_CATEGORY[activeCategory] || '🔥 Hot';
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 pb-24">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden overflow-y-auto overscroll-y-contain bg-slate-950 text-slate-100 pb-24 scroll-smooth">
       {modal && <AuthModal mode={modal} onClose={closeModal} />}
       {walletModal === 'deposit' && <DepositModal onClose={closeWallet} />}
       {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={closeWallet} />}
@@ -132,7 +132,7 @@ export default function HomePage() {
             <button
               onClick={() => { toggleMute(); }}
               title={muted ? 'Unmute' : 'Mute'}
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-base transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-base transition-all duration-150 ease-in-out active:scale-95 active:opacity-70"
             >
               {muted ? '🔇' : '🔊'}
             </button>
@@ -149,27 +149,27 @@ export default function HomePage() {
               {/* deposit button */}
               <button
                 onClick={() => { playSound('deposit'); openWallet('deposit'); }}
-                className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30"
+                className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-all duration-150 ease-in-out shadow-lg shadow-green-500/30 active:scale-95 active:opacity-70"
               >
                 + Deposit
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={() => openModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-colors shadow-lg shadow-green-500/30">Register</button>
-              <button onClick={() => openModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors">Login</button>
+              <button onClick={() => openModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-all duration-150 ease-in-out shadow-lg shadow-green-500/30 active:scale-95 active:opacity-70">Register</button>
+              <button onClick={() => openModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">Login</button>
             </div>
           )}
           </div>
         </div>
       </header>
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-xl mx-auto pb-4">
         <BannerSlider />
         <CategoryNav active={activeCategory} onChange={(c) => { playSound('select'); setActiveCategory(c); }} />
         <section className="px-3 mt-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-bold text-white">{sectionLabel}</h2>
-            <button onClick={() => playSound('click')} className="text-xs text-green-400 hover:text-green-300 font-semibold transition-colors">View All →</button>
+            <button onClick={() => playSound('click')} className="text-xs text-green-400 hover:text-green-300 font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">View All →</button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {games.map((game) => (
@@ -192,7 +192,7 @@ export default function HomePage() {
               { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => setShowInvite(true) },
               { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900', action: () => {} },
             ].map((action) => (
-              <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-b ${action.color} p-2.5 active:scale-95 transition-transform`}>
+              <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-b ${action.color} p-2.5 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70`}>
                 <span className="text-lg">{action.emoji}</span>
                 <span className="text-[9px] font-semibold text-white/90 leading-none">{action.label}</span>
               </button>

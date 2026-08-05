@@ -51,10 +51,10 @@ export default function DepositModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
 
         {/* header */}
         <div className="sticky top-0 bg-slate-900 flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800 z-10">
@@ -64,7 +64,7 @@ export default function DepositModal({ onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors text-lg"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all duration-150 ease-in-out text-lg active:scale-95 active:opacity-70"
           >
             ×
           </button>
@@ -96,7 +96,7 @@ export default function DepositModal({ onClose }) {
                     key={m.key}
                     type="button"
                     onClick={() => setMethod(m.key)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-semibold transition-all ${
+                    className={`flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
                       method === m.key
                         ? 'border-green-500 bg-green-500/10 text-green-400'
                         : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-500'
@@ -133,7 +133,7 @@ export default function DepositModal({ onClose }) {
                     key={a}
                     type="button"
                     onClick={() => setAmount(String(a))}
-                    className={`rounded-xl border py-2 text-xs font-bold transition-all ${
+                    className={`rounded-xl border py-2 text-xs font-bold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
                       amount === String(a)
                         ? 'border-green-500 bg-green-500/15 text-green-400'
                         : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500'
@@ -179,7 +179,7 @@ export default function DepositModal({ onClose }) {
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-green-500 hover:bg-green-400 active:scale-95 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all"
+              className="w-full rounded-xl bg-green-500 hover:bg-green-400 active:scale-95 active:opacity-70 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all duration-150 ease-in-out"
             >
               ✅ Confirm Deposit
             </button>
