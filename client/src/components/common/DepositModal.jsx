@@ -32,8 +32,11 @@ function PaymentLogo({ method }) {
   if (method === 'easypaisa') {
     return (
       <img
-        src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Easypaisa_logo.png"
+        src="/assets/payments/easypaisa.png"
         alt="EasyPaisa"
+        onError={(event) => {
+          event.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Easypaisa_logo.png';
+        }}
         className="max-h-10 w-auto object-contain"
       />
     );
@@ -41,8 +44,11 @@ function PaymentLogo({ method }) {
 
   return (
     <img
-      src="https://upload.wikimedia.org/wikipedia/commons/d/d1/JazzCash_logo.png"
+      src="/assets/payments/jazzcash.png"
       alt="JazzCash"
+      onError={(event) => {
+        event.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/d/d1/JazzCash_logo.png';
+      }}
       className="max-h-10 w-auto object-contain"
     />
   );

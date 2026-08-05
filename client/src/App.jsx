@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './components/pages/HomePage';
 import TeamSelectionPage from './components/pages/TeamSelectionPage';
@@ -19,6 +20,38 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/auth" replace />;
 }
 
+function LaunchSplash() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+      <img
+        src="/assets/branding/game-logo.png"
+        alt="Game Logo"
+        className="h-auto w-[min(82vw,420px)] object-contain"
+        onError={(event) => {
+          event.currentTarget.style.display = 'none';
+          const fallback = event.currentTarget.nextElementSibling;
+          if (fallback) fallback.classList.remove('hidden');
+        }}
+      />
+      <div className="hidden text-center">
+        <h1 className="text-4xl font-extrabold tracking-wide text-white">WIN TOON 786</h1>
+        <p className="mt-2 text-sm text-slate-300">Dragon vs Lion</p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -26,6 +59,7 @@ function App() {
         <SoundProvider>
           <MobileGuard>
           <Router>
+            <LaunchSplash />
             <main className="min-h-screen w-full flex flex-col overflow-y-auto pb-24 bg-slate-950 text-slate-100 overflow-x-hidden scroll-smooth [-webkit-overflow-scrolling:touch]">
               <Routes>
                 <Route path="/" element={<HomePage />} />
