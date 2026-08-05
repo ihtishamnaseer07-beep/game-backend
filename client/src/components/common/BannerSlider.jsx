@@ -27,30 +27,42 @@ const slides = [
   },
 ];
 
-export default function BannerSlider() {
+export default function BannerSlider({ bannerImages = [] }) {
   const [active, setActive] = useState(0);
+  const hasCustomImages = Array.isArray(bannerImages) && bannerImages.length > 0;
+  const activeImage = hasCustomImages ? bannerImages[active % bannerImages.length] : '';
 
   useEffect(() => {
-    const t = setInterval(() => setActive((p) => (p + 1) % slides.length), 3500);
+    const total = hasCustomImages ? bannerImages.length : slides.length;
+    const t = setInterval(() => setActive((p) => (p + 1) % total), 3500);
     return () => clearInterval(t);
-  }, []);
+  }, [hasCustomImages, bannerImages]);
 
-  const slide = slides[active];
+  const slide = slides[active % slides.length];
 
   return (
     <div className="relative overflow-hidden rounded-2xl mx-3 mt-3 h-32">
-      <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} transition-all duration-700`} />
-      <div className="relative z-10 flex h-full flex-col justify-center px-4 gap-1">
-        <span className={`text-[10px] font-bold tracking-widest uppercase ${slide.accent} bg-black/30 w-fit px-2 py-0.5 rounded-full`}>
-          {slide.badge}
-        </span>
-        <h2 className="text-base font-extrabold text-white leading-tight">{slide.title}</h2>
-        <p className="text-xs text-slate-300">{slide.subtitle}</p>
-      </div>
+      {hasCustomImages ? (
+        <>
+          <img src={activeImage} alt="Homepage banner" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-black/35" />
+        </>
+      ) : (
+        <>
+          <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} transition-all duration-700`} />
+          <div className="relative z-10 flex h-full flex-col justify-center px-4 gap-1">
+            <span className={`text-[10px] font-bold tracking-widest uppercase ${slide.accent} bg-black/30 w-fit px-2 py-0.5 rounded-full`}>
+              {slide.badge}
+            </span>
+            <h2 className="text-base font-extrabold text-white leading-tight">{slide.title}</h2>
+            <p className="text-xs text-slate-300">{slide.subtitle}</p>
+          </div>
+        </>
+      )}
 
       {/* dots */}
       <div className="absolute bottom-3 right-4 flex gap-1.5">
-        {slides.map((_, i) => (
+        {(hasCustomImages ? bannerImages : slides).map((_, i) => (
           <button
             key={i}
             onClick={() => setActive(i)}

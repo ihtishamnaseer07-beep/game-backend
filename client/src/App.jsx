@@ -7,13 +7,14 @@ import SupportCoinPage from './components/pages/SupportCoinPage';
 import LeaderboardPage from './components/pages/LeaderboardPage';
 import UserProfilePage from './components/pages/UserProfilePage';
 import MatchArenaPage from './components/pages/MatchArenaPage';
-import AdminDashboardPage from './components/pages/AdminDashboardPage';
+import AdminControlPanelPage from './components/pages/AdminControlPanelPage';
 import AdminLoginPage from './components/pages/AdminLoginPage';
 import AuthPage from './components/Auth/AuthPage';
 import FloatingSupportButton from './components/common/FloatingSupportButton';
 import { SoundProvider } from './context/SoundContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { AppSettingsProvider, useAppSettings } from './context/AppSettingsContext';
 import MobileGuard from './components/common/MobileGuard';
 
 function ProtectedRoute({ children }) {
@@ -21,7 +22,25 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/auth" replace />;
 }
 
+function AdminProtectedRoute({ children }) {
+  const { user } = useAuth();
+  const { settings } = useAppSettings();
+
+  const allowedEmails = (settings?.adminAuthorizedEmails || []).map((value) => String(value).trim().toLowerCase());
+  const allowedPhones = (settings?.adminAuthorizedPhones || []).map((value) => String(value).replace(/\s+/g, ''));
+  const userEmail = String(user?.email || '').trim().toLowerCase();
+  const userPhone = String(user?.phone || '').replace(/\s+/g, '');
+  const fallbackRoleAccess = user?.role === 'admin' || user?.role === 'superadmin';
+
+  const hasAccess = (allowedEmails.length || allowedPhones.length)
+    ? allowedEmails.includes(userEmail) || allowedPhones.includes(userPhone)
+    : fallbackRoleAccess;
+
+  return hasAccess ? children : <Navigate to="/admin-login" replace />;
+}
+
 function LaunchSplash() {
+  const { settings } = useAppSettings();
   const [visible, setVisible] = useState(false);
   const [isFading, setIsFading] = useState(false);
 
@@ -54,7 +73,7 @@ function LaunchSplash() {
       }`}
     >
       <img
-        src="/assets/branding/game-logo.png"
+        src={settings?.splashScreenUrl || settings?.gameLogoUrl || '/assets/branding/game-logo.png'}
         alt="Game Logo"
         className="h-auto w-[min(82vw,420px)] object-contain"
         onError={(event) => {
@@ -75,6 +94,7 @@ function App() {
   return (
     <AuthProvider>
       <LanguageProvider>
+        <AppSettingsProvider>
         <SoundProvider>
           <MobileGuard>
           <Router>
@@ -89,7 +109,7 @@ function App() {
                 <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
                 <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminProtectedRoute><AdminControlPanelPage /></AdminProtectedRoute></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               </Routes>
             </main>
@@ -97,6 +117,7 @@ function App() {
           </Router>
           </MobileGuard>
         </SoundProvider>
+        </AppSettingsProvider>
       </LanguageProvider>
     </AuthProvider>
   );

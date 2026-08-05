@@ -1,30 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppSettings } from '../../context/AppSettingsContext';
 import { API_URL } from '../../config';
-
-const METHODS = [
-  {
-    key: 'easypaisa',
-    label: 'EasyPaisa',
-    emoji: '🟢',
-    account: '0300-1234567',
-    title: 'WIN TOON 786 (EP)',
-  },
-  {
-    key: 'jazzcash',
-    label: 'JazzCash',
-    emoji: '🔴',
-    account: '0301-7654321',
-    title: 'WIN TOON 786 (JC)',
-  },
-  {
-    key: 'bank',
-    label: 'Bank Transfer',
-    emoji: '🏦',
-    account: 'PK36 MEZN 0001 0103 0101 23',
-    title: 'WIN TOON 786 Pvt Ltd — Meezan Bank',
-  },
-];
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
@@ -76,6 +53,7 @@ function PaymentText({ method, label }) {
 }
 
 export default function DepositModal({ onClose }) {
+  const { settings } = useAppSettings();
   const { user, token } = useAuth();
   const [method, setMethod] = useState('easypaisa');
   const [amount, setAmount] = useState('');
@@ -86,7 +64,31 @@ export default function DepositModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const selected = METHODS.find((m) => m.key === method);
+  const methods = useMemo(() => [
+    {
+      key: 'easypaisa',
+      label: 'EasyPaisa',
+      emoji: '🟢',
+      account: settings?.easypaisaDetails?.accountNumber || '0300-1234567',
+      title: settings?.easypaisaDetails?.accountTitle || 'WIN TOON 786 (EP)',
+    },
+    {
+      key: 'jazzcash',
+      label: 'JazzCash',
+      emoji: '🔴',
+      account: settings?.jazzcashDetails?.accountNumber || '0301-7654321',
+      title: settings?.jazzcashDetails?.accountTitle || 'WIN TOON 786 (JC)',
+    },
+    {
+      key: 'bank',
+      label: 'Bank Transfer',
+      emoji: '🏦',
+      account: settings?.bankDetails?.accountNumber || 'PK36 MEZN 0001 0103 0101 23',
+      title: settings?.bankDetails?.accountTitle || 'WIN TOON 786 Pvt Ltd — Meezan Bank',
+    },
+  ], [settings]);
+
+  const selected = methods.find((m) => m.key === method) || methods[0];
   const instructions = useMemo(() => [
     '1. Transfer money to the official account above via EasyPaisa or JazzCash.',
     '2. Enter the 12-digit Transaction ID (TID / Trx ID) from your SMS receipt.',
@@ -206,7 +208,7 @@ export default function DepositModal({ onClose }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Select Payment Method</p>
               <div className="grid grid-cols-3 gap-2">
-                {METHODS.map((m) => (
+                {methods.map((m) => (
                   <button
                     key={m.key}
                     type="button"

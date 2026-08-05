@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
+import { useAppSettings } from '../../context/AppSettingsContext';
 import { API_URL } from '../../config';
 import BannerSlider from '../common/BannerSlider';
 import CategoryNav from '../common/CategoryNav';
@@ -81,9 +82,13 @@ export default function HomePage() {
   const [rewardStatus, setRewardStatus] = useState(null);
   const [rewardLoading, setRewardLoading] = useState(false);
   const [spinReward, setSpinReward] = useState(null);
+  const { settings } = useAppSettings();
   const { user, token, logout, updateUser } = useAuth();
   const { muted, toggleMute, playSound } = useSound();
   const balance = user?.coins ?? 0;
+  const logoUrl = settings?.gameLogoUrl || '/logo.png';
+  const announcementText = settings?.announcementText || "Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!";
+  const appTheme = settings?.appTheme || {};
 
   const loadRewardStatus = async () => {
     if (!token || !user?._id) return;
@@ -175,7 +180,7 @@ export default function HomePage() {
   const sectionLabel = LABEL_BY_CATEGORY[activeCategory] || '🔥 Hot';
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 scroll-smooth [-webkit-overflow-scrolling:touch]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden text-slate-100 scroll-smooth [-webkit-overflow-scrolling:touch]" style={{ background: appTheme.background, fontFamily: appTheme.fontFamily }}>
       {modal && <AuthModal mode={modal} onClose={closeModal} />}
       {walletModal === 'deposit' && <DepositModal onClose={closeWallet} />}
       {walletModal === 'withdraw' && <WithdrawModal balance={balance} onClose={closeWallet} />}
@@ -203,7 +208,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between px-3 py-2 max-w-full">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-green-500 shadow-lg shadow-green-500/30 overflow-hidden">
-              <img src="/logo.png" alt="logo" className="h-full w-full object-cover" />
+              <img src={logoUrl} alt="logo" className="h-full w-full object-cover" />
             </div>
             <span className="text-base font-extrabold tracking-wide">
               <span className="text-yellow-400">WIN</span>
@@ -246,7 +251,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={() => openModal('register')} className="rounded-lg bg-green-500 hover:bg-green-400 px-3 py-1.5 text-xs font-bold text-white transition-all duration-150 ease-in-out shadow-lg shadow-green-500/30 active:scale-95 active:opacity-70">Register</button>
+              <button onClick={() => openModal('register')} className="rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all duration-150 ease-in-out shadow-lg active:scale-95 active:opacity-70" style={{ background: `linear-gradient(135deg, ${appTheme.primary || '#22c55e'}, ${appTheme.secondary || '#eab308'})`, borderRadius: `${appTheme.buttonRadius || 10}px` }}>Register</button>
               <button onClick={() => openModal('login')} className="rounded-lg border border-slate-600 hover:border-slate-400 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-all duration-150 ease-in-out active:scale-95 active:opacity-70">Login</button>
             </div>
           )}
@@ -254,7 +259,7 @@ export default function HomePage() {
         </div>
       </header>
       <div className="max-w-xl mx-auto pb-4">
-        <BannerSlider />
+        <BannerSlider bannerImages={settings?.bannerImages || []} />
         <CategoryNav active={activeCategory} onChange={(c) => { playSound('select'); setActiveCategory(c); }} />
         <section className="px-3 mt-3">
           <div className="flex items-center justify-between mb-2">
@@ -291,7 +296,7 @@ export default function HomePage() {
         </section>
         <div className="mx-3 mt-3 mb-2 rounded-xl bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 flex items-center gap-2">
           <span className="text-sm">📢</span>
-          <p className="text-xs text-yellow-300 font-medium truncate">Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!</p>
+          <p className="text-xs text-yellow-300 font-medium truncate">{announcementText}</p>
         </div>
         {user && rewardStatus && (
           <div className="mx-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3">
