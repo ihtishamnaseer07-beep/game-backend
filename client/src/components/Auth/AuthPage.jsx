@@ -65,7 +65,7 @@ function AuthPage() {
       const loginIdentifier = loginPhone || form.email.trim();
       const payload = mode === 'register'
         ? { name: form.name, email: form.email, phone: assembledRegisterPhone, password: form.password }
-        : { email: loginIdentifier, phone: loginPhone, password: form.password };
+        : { identifier: loginIdentifier, password: form.password };
 
       if (mode === 'login') {
         if (loginPhoneDigits) {
@@ -267,7 +267,7 @@ function AuthPage() {
               onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, loginCountryCode: value }))}
               phoneNumber={form.loginPhoneNumber}
               onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, loginPhoneNumber: value }))}
-              helperText="Use this instead of email if your backend login supports phone identifier."
+              helperText="Use mobile or email; login sends a single identifier field."
             />
           )}
           <div>

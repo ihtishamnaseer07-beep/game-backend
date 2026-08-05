@@ -3,19 +3,35 @@ import User from '../models/User.js';
 import { sendEmail } from '../utils/emailService.js';
 import { generateAuthToken, generateVerificationToken, generateResetToken } from '../utils/tokenService.js';
 
+const PHONE_REGEX = /^(\+92[3]\d{9}|\+9665\d{8})$/;
+
+function normalizePhone(value = '') {
+  return String(value).replace(/\s+/g, '');
+}
+
+function isInternationalPhone(value = '') {
+  return PHONE_REGEX.test(normalizePhone(value));
+}
+
 export const registerUser = async (req, res, next) => {
   try {
     const { name, email, phone, password } = req.body;
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedPhone = normalizePhone(phone);
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) return res.status(409).json({ message: 'Email already registered.' });
+
+    const existingPhoneUser = await User.findOne({ phone: normalizedPhone });
+    if (existingPhoneUser) return res.status(409).json({ message: 'Mobile number already registered.' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const verificationToken = generateVerificationToken();
 
     const user = await User.create({
       name,
-      email,
-      phone,
+      email: normalizedEmail,
+      phone: normalizedPhone,
       passwordHash,
       verificationToken,
       isEmailVerified: false,
@@ -50,8 +66,18 @@ export const registerUser = async (req, res, next) => {
 
 export const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const { identifier, email, phone, password } = req.body;
+    const rawIdentifier = String(identifier || email || phone || '').trim();
+    const normalizedEmail = rawIdentifier.toLowerCase();
+    const normalizedPhone = normalizePhone(rawIdentifier);
+
+    let user = null;
+    if (isInternationalPhone(normalizedPhone)) {
+      user = await User.findOne({ phone: normalizedPhone });
+    } else {
+      user = await User.findOne({ email: normalizedEmail });
+    }
+
     if (!user) return res.status(401).json({ message: 'Invalid credentials.' });
 
     if (user.isBanned) return res.status(403).json({ message: 'Your account has been banned.' });

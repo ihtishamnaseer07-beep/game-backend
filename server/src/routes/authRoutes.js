@@ -16,7 +16,12 @@ router.post(
   [
     body('name').notEmpty(),
     body('email').isEmail(),
-    body('phone').matches(/^\+92\s?3\d{2}\s?\d{7}$/).withMessage('Invalid Pakistani phone number'),
+    body('phone').custom((value) => {
+      const phone = String(value || '').replace(/\s+/g, '');
+      if (/^\+9665\d{8}$/.test(phone)) return true;
+      if (/^\+923\d{9}$/.test(phone)) return true;
+      throw new Error('Invalid phone number. Use +9665XXXXXXXX or +923XXXXXXXXX format.');
+    }),
     body('password').isLength({ min: 8 }),
   ],
   validateRequest,
@@ -25,7 +30,26 @@ router.post(
 
 router.post(
   '/login',
-  [body('email').isEmail(), body('password').notEmpty()],
+  [
+    body('password').notEmpty(),
+    body().custom((_, { req }) => {
+      const identifier = String(req.body?.identifier || req.body?.email || req.body?.phone || '').trim();
+      const compact = identifier.replace(/\s+/g, '');
+
+      if (!identifier) {
+        throw new Error('Email or phone identifier is required.');
+      }
+
+      const isPhone = /^\+9665\d{8}$/.test(compact) || /^\+923\d{9}$/.test(compact);
+      const isEmail = /.+@.+\..+/.test(identifier);
+
+      if (!isPhone && !isEmail) {
+        throw new Error('Provide a valid email or international mobile number.');
+      }
+
+      return true;
+    }),
+  ],
   validateRequest,
   loginUser
 );

@@ -83,7 +83,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     const payload =
       mode === 'register'
         ? { name: form.username, email: form.username, phone: registerPhone, password: form.password }
-        : { email: loginIdentifier, phone: loginPhone, password: form.password };
+        : { identifier: loginIdentifier, password: form.password };
 
     if (mode === 'login') {
       if (loginPhoneDigits) {
@@ -273,7 +273,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
               onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, loginCountryCode: value }))}
               phoneNumber={form.loginPhoneNumber}
               onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, loginPhoneNumber: value }))}
-              helperText="Use this as login identifier if your backend supports phone login."
+              helperText="Use mobile or username/email; login sends a single identifier field."
             />
           )}
 
