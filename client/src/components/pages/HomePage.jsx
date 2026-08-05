@@ -138,6 +138,12 @@ export default function HomePage() {
             >
               {muted ? '🔇' : '🔊'}
             </button>
+            <button
+              onClick={() => navigate('/admin-login')}
+              className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-bold text-cyan-300 transition-all duration-150 ease-in-out hover:bg-cyan-500/25 active:scale-95 active:opacity-70"
+            >
+              Admin
+            </button>
           {user ? (
             <div className="flex items-center gap-2">
               {/* avatar */}
