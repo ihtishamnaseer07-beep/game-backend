@@ -16,10 +16,10 @@ import ProfileView from '../common/ProfileView';
 import UserAvatar from '../common/UserAvatar';
 
 const HOT_GAMES = [
-  { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
-  { id: 2, title: 'Chicken Road 2.0', provider: 'BGaming', emoji: '🐔', color: 'from-yellow-600 to-orange-800' },
-  { id: 3, title: 'Mega Slots', provider: 'WG', emoji: '🎰', color: 'from-purple-700 to-pink-900' },
-  { id: 4, title: 'Dragon Tiger', provider: 'Evolution', emoji: '🐉', color: 'from-red-700 to-rose-900' },
+  { id: 1, title: 'Dragon vs Lion', provider: 'WT786 Live', emoji: '🐉🦁', color: 'from-rose-600 to-amber-700' },
+  { id: 2, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
+  { id: 3, title: 'Chicken Road 2.0', provider: 'BGaming', emoji: '🐔', color: 'from-yellow-600 to-orange-800' },
+  { id: 4, title: 'Mega Slots', provider: 'WG', emoji: '🎰', color: 'from-purple-700 to-pink-900' },
   { id: 5, title: 'Crash Gold', provider: 'Spribe', emoji: '💥', color: 'from-yellow-500 to-amber-800' },
   { id: 6, title: 'Fish Prawn Crab', provider: 'WG', emoji: '🦀', color: 'from-teal-700 to-cyan-900' },
 ];
@@ -32,10 +32,10 @@ const SLOT_GAMES = [
 ];
 
 const MINI_GAMES = [
-  { id: 1, title: 'Dragon vs Lion', provider: 'WIN TOON 786', emoji: '🐉🦁', color: 'from-rose-600 to-amber-700' },
+  { id: 1, title: 'Dragon vs Lion', provider: 'WT786 Live', emoji: '🐉🦁', color: 'from-rose-600 to-amber-700' },
   { id: 2, title: 'Turbo Crash', provider: 'Spribe', emoji: '🚀', color: 'from-cyan-600 to-blue-800' },
   { id: 3, title: 'Speed Dice', provider: 'BGaming', emoji: '🎲', color: 'from-emerald-600 to-teal-800' },
-  { id: 4, title: 'Lucky Flip', provider: 'WIN TOON 786', emoji: '🪙', color: 'from-yellow-600 to-orange-800' },
+  { id: 4, title: 'Lucky Flip', provider: 'WT786 Live', emoji: '🪙', color: 'from-yellow-600 to-orange-800' },
 ];
 
 const CARD_GAMES = [

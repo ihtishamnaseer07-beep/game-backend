@@ -29,6 +29,17 @@ function createDragonRound() {
   };
 }
 
+function getWinner(round) {
+  if (round.dragon.value === round.lion.value) return 'tie';
+  return round.dragon.value > round.lion.value ? 'dragon' : 'lion';
+}
+
+function historyLabel(outcome) {
+  if (outcome === 'dragon') return 'D';
+  if (outcome === 'lion') return 'L';
+  return 'T';
+}
+
 function toCardFace(value) {
   if (value === 14) return 'A';
   if (value === 13) return 'K';
@@ -46,7 +57,7 @@ function FastRoundGame({ game, balance = 0, onRoundComplete, playSound }) {
   const timeoutRef = useRef(null);
   const resolvedRef = useRef(false);
 
-  const betOptions = [50, 100, 250, 500];
+  const betOptions = [10, 50, 100, 500];
 
   useEffect(() => () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -180,25 +191,34 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
   const [phase, setPhase] = useState('Betting');
   const [round, setRound] = useState(() => createDragonRound());
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
   const resolvedRef = useRef(false);
+  const lastCueRef = useRef(null);
 
   const betOptions = [50, 100, 250, 500];
 
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    playSound?.('matchStart');
 
-    setSecondsLeft(10);
-    setPhase('Betting');
-    setResult(null);
-    setRound(createDragonRound());
-    resolvedRef.current = false;
+    const beginRound = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((current) => (current > 1 ? current - 1 : 0));
-    }, 1000);
+      setSecondsLeft(10);
+      setPhase('Betting');
+      setResult(null);
+      setRound(createDragonRound());
+      resolvedRef.current = false;
+      lastCueRef.current = null;
+
+      intervalRef.current = setInterval(() => {
+        setSecondsLeft((current) => (current > 0 ? current - 1 : 0));
+      }, 1000);
+    };
+
+    beginRound();
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -208,6 +228,15 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
 
   useEffect(() => {
     setPhase(getPhaseLabel(secondsLeft));
+
+    if ([9, 7, 5, 3, 1].includes(secondsLeft) && lastCueRef.current !== secondsLeft) {
+      lastCueRef.current = secondsLeft;
+      playSound?.('click');
+    }
+
+    if (secondsLeft === 2) {
+      playSound?.('select');
+    }
   }, [secondsLeft]);
 
   useEffect(() => {
@@ -216,7 +245,7 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
     resolvedRef.current = true;
     if (intervalRef.current) clearInterval(intervalRef.current);
 
-    const winner = round.dragon.value === round.lion.value ? 'tie' : round.dragon.value > round.lion.value ? 'dragon' : 'lion';
+    const winner = getWinner(round);
     const won = betSide === winner;
     const multiplier = winner === 'tie' ? 8 : 2;
     const delta = won ? Math.round(betAmount * (multiplier - 1)) : -betAmount;
@@ -231,6 +260,7 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
     };
 
     setResult(payload);
+    setHistory((current) => [historyLabel(winner), ...current].slice(0, 10));
     playSound?.(won ? 'score' : 'hit');
     onRoundComplete?.(payload);
 
@@ -240,24 +270,48 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
       setResult(null);
       setPhase('Betting');
       resolvedRef.current = false;
+      playSound?.('matchStart');
     }, 1800);
   }, [secondsLeft, round, betSide, betAmount, onRoundComplete, playSound]);
 
-  const dragonIsWinning = round.dragon.value > round.lion.value;
-  const lionIsWinning = round.lion.value > round.dragon.value;
+  const winner = getWinner(round);
+  const dragonIsWinning = winner === 'dragon';
+  const lionIsWinning = winner === 'lion';
   const revealActive = secondsLeft <= 6;
+  const faceUp = secondsLeft <= 2 || result;
+  const timerDanger = secondsLeft <= 3;
 
   return (
     <div className="flex h-full flex-col gap-4 bg-slate-950 px-4 py-4 text-center">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-left">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Last 10 Rounds</p>
+        <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+          {history.length ? history.map((item, index) => (
+            <span
+              key={`${item}-${index}`}
+              className={`flex h-8 min-w-8 items-center justify-center rounded-full border px-2 text-xs font-black ${
+                item === 'D'
+                  ? 'border-rose-400/40 bg-rose-500/15 text-rose-300'
+                  : item === 'L'
+                    ? 'border-amber-400/40 bg-amber-500/15 text-amber-300'
+                    : 'border-violet-400/40 bg-violet-500/15 text-violet-300'
+              }`}
+            >
+              {item}
+            </span>
+          )) : <span className="text-xs text-slate-500">No completed rounds yet</span>}
+        </div>
+      </div>
+
       <div className="rounded-3xl border border-rose-500/20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-4 shadow-2xl shadow-rose-950/20">
         <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
           <span>{phase}</span>
-          <span>{secondsLeft}s</span>
+          <span className={timerDanger ? 'text-amber-300' : 'text-slate-500'}>{secondsLeft}s</span>
         </div>
         <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
-          <div className="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 transition-all duration-300" style={{ width: `${(secondsLeft / 10) * 100}%` }} />
+          <div className={`h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 transition-all duration-300 ${timerDanger ? 'animate-pulse' : ''}`} style={{ width: `${(secondsLeft / 10) * 100}%` }} />
         </div>
-        <p className="mt-3 text-3xl font-black text-white">Dragon vs Lion</p>
+        <p className={`mt-3 text-3xl font-black text-white ${timerDanger ? 'animate-pulse' : ''}`}>Dragon vs Lion</p>
         <p className="text-xs text-slate-400">Highest card wins. Dragon, Lion, or Tie can payout before the timer ends.</p>
       </div>
 
@@ -321,8 +375,8 @@ function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
             <div className={`mx-auto flex h-36 w-full items-center justify-center rounded-[24px] bg-gradient-to-br ${card.edge} ${revealActive ? 'scale-100 opacity-100' : 'scale-95 opacity-90'} transition-all duration-300`}>
               <div className="flex flex-col items-center gap-2 text-white">
                 <div className="text-4xl">{card.key === 'dragon' ? '🐉' : '🦁'}</div>
-                <div className="rounded-2xl bg-black/20 px-4 py-2 text-4xl font-black shadow-inner backdrop-blur-sm">
-                  {revealActive ? card.card.face : '??'}
+                <div className={`relative flex h-16 w-28 items-center justify-center rounded-2xl border-2 border-white/20 bg-black/20 text-4xl font-black shadow-inner backdrop-blur-sm transition-all duration-300 ${faceUp ? 'rotate-0 scale-100' : 'scale-95'}`}>
+                  {faceUp ? card.card.face : '🂠'}
                 </div>
               </div>
             </div>
