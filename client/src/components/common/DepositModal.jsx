@@ -28,29 +28,41 @@ const METHODS = [
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
+const PAYMENT_LOGOS = {
+  easypaisa: {
+    src: '/assets/payments/easypaisa.png',
+    alt: 'EasyPaisa',
+    fallback: '🟢',
+  },
+  jazzcash: {
+    src: '/assets/payments/jazzcash.png',
+    alt: 'JazzCash',
+    fallback: '🔴',
+  },
+  bank: {
+    src: '/assets/payments/bank.png',
+    alt: 'Bank Transfer',
+    fallback: '🏦',
+  },
+};
+
 function PaymentLogo({ method }) {
-  if (method === 'easypaisa') {
-    return (
+  const selectedLogo = PAYMENT_LOGOS[method] || PAYMENT_LOGOS.bank;
+
+  return (
+    <span className="inline-flex items-center justify-center">
       <img
-        src="/assets/payments/easypaisa.png"
-        alt="EasyPaisa"
+        src={selectedLogo.src}
+        alt={selectedLogo.alt}
         onError={(event) => {
-          event.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Easypaisa_logo.png';
+          event.currentTarget.style.display = 'none';
+          const fallback = event.currentTarget.nextElementSibling;
+          if (fallback) fallback.classList.remove('hidden');
         }}
         className="max-h-10 w-auto object-contain"
       />
-    );
-  }
-
-  return (
-    <img
-      src="/assets/payments/jazzcash.png"
-      alt="JazzCash"
-      onError={(event) => {
-        event.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/d/d1/JazzCash_logo.png';
-      }}
-      className="max-h-10 w-auto object-contain"
-    />
+      <span className="hidden text-lg leading-none">{selectedLogo.fallback}</span>
+    </span>
   );
 }
 

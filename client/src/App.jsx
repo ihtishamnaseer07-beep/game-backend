@@ -21,11 +21,25 @@ function ProtectedRoute({ children }) {
 }
 
 function LaunchSplash() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(false), 1000);
-    return () => clearTimeout(timer);
+    const hasSeenSplash = localStorage.getItem('wt786_splash_seen') === 'true';
+    if (hasSeenSplash) {
+      return undefined;
+    }
+
+    setVisible(true);
+    localStorage.setItem('wt786_splash_seen', 'true');
+
+    const showTimer = setTimeout(() => setIsFading(true), 2000);
+    const hideTimer = setTimeout(() => setVisible(false), 2400);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
 
   if (!visible) {
@@ -33,7 +47,11 @@ function LaunchSplash() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+    <div
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 transition-opacity duration-400 ease-out ${
+        isFading ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
       <img
         src="/assets/branding/game-logo.png"
         alt="Game Logo"
