@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import HomePage from './components/pages/HomePage';
 import TeamSelectionPage from './components/pages/TeamSelectionPage';
 import CharacterSelectionPage from './components/pages/CharacterSelectionPage';
@@ -87,14 +87,21 @@ function LaunchSplash() {
   );
 }
 
+function RouteAwareMobileGuard({ children }) {
+  const location = useLocation();
+  const allowDesktop = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+
+  return <MobileGuard allowDesktop={allowDesktop}>{children}</MobileGuard>;
+}
+
 function App() {
   return (
     <AuthProvider>
       <LanguageProvider>
         <AppSettingsProvider>
         <SoundProvider>
-          <MobileGuard>
           <Router>
+            <RouteAwareMobileGuard>
             <LaunchSplash />
             <main className="min-h-screen w-full flex flex-col overflow-y-auto pb-24 bg-slate-950 text-slate-100 overflow-x-hidden scroll-smooth [-webkit-overflow-scrolling:touch]">
               <Routes>
@@ -111,8 +118,8 @@ function App() {
               </Routes>
             </main>
             <FloatingSupportButton />
+            </RouteAwareMobileGuard>
           </Router>
-          </MobileGuard>
         </SoundProvider>
         </AppSettingsProvider>
       </LanguageProvider>

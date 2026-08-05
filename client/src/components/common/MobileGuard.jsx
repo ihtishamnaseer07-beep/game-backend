@@ -20,13 +20,13 @@ function useIsMobile() {
   return mobile;
 }
 
-export default function MobileGuard({ children }) {
+export default function MobileGuard({ children, allowDesktop = false }) {
   const isMobile = useIsMobile();
 
   // null = still detecting — render nothing to avoid flash
   if (isMobile === null) return null;
 
-  if (!isMobile) {
+  if (!isMobile && !allowDesktop) {
     return (
       <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-slate-950 px-6 text-center">
         {/* glow bg */}
