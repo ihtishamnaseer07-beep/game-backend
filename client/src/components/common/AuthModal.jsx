@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
 import SmsOtpModal from './SmsOtpModal';
+import CountryPhoneInput from './CountryPhoneInput';
+import {
+  assembleInternationalPhone,
+  validatePhoneByCountry,
+} from '../../utils/phoneUtils';
 
 function InputField({ label, name, type = 'text', value, onChange, placeholder, required }) {
   return (
@@ -23,7 +28,16 @@ function InputField({ label, name, type = 'text', value, onChange, placeholder, 
 
 export default function AuthModal({ mode: initialMode, onClose }) {
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
-  const [form, setForm] = useState({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    referral: '',
+    registerCountryCode: '+92',
+    registerPhoneNumber: '',
+    loginCountryCode: '+966',
+    loginPhoneNumber: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -41,7 +55,16 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setMode(m);
     setError('');
     setSuccess('');
-    setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+    setForm({
+      username: '',
+      password: '',
+      confirmPassword: '',
+      referral: '',
+      registerCountryCode: '+92',
+      registerPhoneNumber: '',
+      loginCountryCode: '+966',
+      loginPhoneNumber: '',
+    });
     setOtpVerified(false);
     setShowOtpModal(false);
   };
@@ -51,10 +74,28 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setSuccess('');
 
     const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+    const registerPhone = assembleInternationalPhone(form.registerCountryCode, form.registerPhoneNumber);
+    const loginPhoneDigits = form.loginPhoneNumber.trim();
+    const loginPhone = loginPhoneDigits
+      ? assembleInternationalPhone(form.loginCountryCode, form.loginPhoneNumber)
+      : '';
+    const loginIdentifier = loginPhone || form.username;
     const payload =
       mode === 'register'
-        ? { name: form.username, email: form.username, phone: form.phone, password: form.password }
-        : { email: form.username, password: form.password };
+        ? { name: form.username, email: form.username, phone: registerPhone, password: form.password }
+        : { email: loginIdentifier, phone: loginPhone, password: form.password };
+
+    if (mode === 'login') {
+      if (loginPhoneDigits) {
+        const loginPhoneValidation = validatePhoneByCountry(form.loginCountryCode, form.loginPhoneNumber);
+        if (!loginPhoneValidation.valid) {
+          throw new Error(loginPhoneValidation.message);
+        }
+      }
+      if (!loginIdentifier?.trim()) {
+        throw new Error('Please enter username/email or mobile number.');
+      }
+    }
 
     const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
@@ -85,8 +126,9 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setSuccess('');
 
     if (mode === 'register') {
-      if (!form.phone.trim()) {
-        setError('Mobile number is required for registration.');
+      const phoneValidation = validatePhoneByCountry(form.registerCountryCode, form.registerPhoneNumber);
+      if (!phoneValidation.valid) {
+        setError(phoneValidation.message);
         return;
       }
       if (form.password !== form.confirmPassword) {
@@ -106,7 +148,16 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setLoading(true);
     try {
       await submitAuth();
-      setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+      setForm({
+        username: '',
+        password: '',
+        confirmPassword: '',
+        referral: '',
+        registerCountryCode: '+92',
+        registerPhoneNumber: '',
+        loginCountryCode: '+966',
+        loginPhoneNumber: '',
+      });
       setOtpVerified(false);
       setShowOtpModal(false);
     } catch (err) {
@@ -116,16 +167,27 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     }
   };
 
-  const handleOtpVerified = async ({ phone }) => {
+  const handleOtpVerified = async ({ phone, countryCode, nationalNumber }) => {
     setShowOtpModal(false);
     setOtpVerified(true);
-    if (phone) {
-      setForm((prev) => ({ ...prev, phone }));
-    }
+    setForm((prev) => ({
+      ...prev,
+      registerCountryCode: countryCode || prev.registerCountryCode,
+      registerPhoneNumber: nationalNumber || prev.registerPhoneNumber,
+    }));
     setLoading(true);
     try {
       await submitAuth();
-      setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+      setForm({
+        username: '',
+        password: '',
+        confirmPassword: '',
+        referral: '',
+        registerCountryCode: '+92',
+        registerPhoneNumber: '',
+        loginCountryCode: '+966',
+        loginPhoneNumber: '',
+      });
       setOtpVerified(false);
     } catch (err) {
       setError(err.message || 'Request failed. Try again.');
@@ -170,7 +232,8 @@ export default function AuthModal({ mode: initialMode, onClose }) {
             <SmsOtpModal
               title="Register Mobile Verification"
               subtitle="Send the demo OTP to verify the mobile number before creating your account."
-              phone={form.phone}
+              phone={assembleInternationalPhone(form.registerCountryCode, form.registerPhoneNumber)}
+              defaultCountryCode={form.registerCountryCode}
               confirmLabel="Verify & Continue"
               onClose={() => setShowOtpModal(false)}
               onVerified={handleOtpVerified}
@@ -182,17 +245,27 @@ export default function AuthModal({ mode: initialMode, onClose }) {
             value={form.username}
             onChange={handleChange}
             placeholder="e.g. player786"
-            required
+            required={!form.loginPhoneNumber}
           />
 
-          {mode === 'register' && (
-            <InputField
+          {mode === 'register' ? (
+            <CountryPhoneInput
               label="Mobile Number"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              placeholder="+92 3001234567"
+              countryCode={form.registerCountryCode}
+              onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, registerCountryCode: value }))}
+              phoneNumber={form.registerPhoneNumber}
+              onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, registerPhoneNumber: value }))}
               required
+              helperText="Saudi: +966 5XXXXXXXX • Pakistan: +92 3XXXXXXXXX"
+            />
+          ) : (
+            <CountryPhoneInput
+              label="Mobile Number (Optional)"
+              countryCode={form.loginCountryCode}
+              onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, loginCountryCode: value }))}
+              phoneNumber={form.loginPhoneNumber}
+              onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, loginPhoneNumber: value }))}
+              helperText="Use this as login identifier if your backend supports phone login."
             />
           )}
 

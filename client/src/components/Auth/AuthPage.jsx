@@ -4,13 +4,27 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { API_URL } from '../../config';
 import SmsOtpModal from '../common/SmsOtpModal';
+import CountryPhoneInput from '../common/CountryPhoneInput';
+import {
+  assembleInternationalPhone,
+  validatePhoneByCountry,
+} from '../../utils/phoneUtils';
 
 function AuthPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { t } = useLanguage();
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    registerCountryCode: '+92',
+    registerPhoneNumber: '',
+    loginCountryCode: '+966',
+    loginPhoneNumber: '',
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -29,12 +43,12 @@ function AuthPage() {
       return;
     }
 
-    if (mode === 'register' && !/^\+92\s?3\d{2}\s?\d{7}$/.test(form.phone.trim())) {
-      setMessage(t('auth.invalidPhone'));
-      return;
-    }
-
     if (mode === 'register' && !otpVerified) {
+      const phoneValidation = validatePhoneByCountry(form.registerCountryCode, form.registerPhoneNumber);
+      if (!phoneValidation.valid) {
+        setMessage(phoneValidation.message);
+        return;
+      }
       setShowOtpModal(true);
       return;
     }
@@ -43,9 +57,27 @@ function AuthPage() {
 
     const submitAuth = async () => {
       const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const assembledRegisterPhone = assembleInternationalPhone(form.registerCountryCode, form.registerPhoneNumber);
+      const loginPhoneDigits = form.loginPhoneNumber.trim();
+      const loginPhone = loginPhoneDigits
+        ? assembleInternationalPhone(form.loginCountryCode, form.loginPhoneNumber)
+        : '';
+      const loginIdentifier = loginPhone || form.email.trim();
       const payload = mode === 'register'
-        ? { name: form.name, email: form.email, phone: form.phone, password: form.password }
-        : { email: form.email, password: form.password };
+        ? { name: form.name, email: form.email, phone: assembledRegisterPhone, password: form.password }
+        : { email: loginIdentifier, phone: loginPhone, password: form.password };
+
+      if (mode === 'login') {
+        if (loginPhoneDigits) {
+          const loginPhoneValidation = validatePhoneByCountry(form.loginCountryCode, form.loginPhoneNumber);
+          if (!loginPhoneValidation.valid) {
+            throw new Error(loginPhoneValidation.message);
+          }
+        }
+        if (!loginIdentifier) {
+          throw new Error('Please enter email or mobile number for login.');
+        }
+      }
 
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
@@ -73,12 +105,19 @@ function AuthPage() {
 
       setMessage(mode === 'register' ? 'Registration successful!' : 'Login successful!');
       navigate('/profile');
-      setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+      setForm({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        registerCountryCode: '+92',
+        registerPhoneNumber: '',
+        loginCountryCode: '+966',
+        loginPhoneNumber: '',
+      });
       setOtpVerified(false);
       setShowOtpModal(false);
     };
-
-    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
 
     try {
       await submitAuth();
@@ -89,10 +128,14 @@ function AuthPage() {
     }
   };
 
-  const handleOtpVerified = async ({ phone }) => {
+  const handleOtpVerified = async ({ phone, countryCode, nationalNumber }) => {
     setShowOtpModal(false);
     setOtpVerified(true);
-    setForm((prev) => ({ ...prev, phone: phone || prev.phone }));
+    setForm((prev) => ({
+      ...prev,
+      registerCountryCode: countryCode || prev.registerCountryCode,
+      registerPhoneNumber: nationalNumber || prev.registerPhoneNumber,
+    }));
     setMessage('Mobile number verified. Completing registration...');
     setLoading(true);
 
@@ -100,7 +143,7 @@ function AuthPage() {
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, phone: phone || form.phone, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, phone: phone, password: form.password }),
       });
 
       const contentType = res.headers.get('content-type') || '';
@@ -112,7 +155,16 @@ function AuthPage() {
 
       setMessage('Registration successful!');
       navigate('/profile');
-      setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+      setForm({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        registerCountryCode: '+92',
+        registerPhoneNumber: '',
+        loginCountryCode: '+966',
+        loginPhoneNumber: '',
+      });
       setOtpVerified(false);
     } catch (error) {
       setMessage(error.message || 'Something went wrong. Check your connection.');
@@ -161,7 +213,8 @@ function AuthPage() {
             <SmsOtpModal
               title="Register Mobile Verification"
               subtitle="Send a demo SMS OTP to verify the mobile number before creating your account."
-              phone={form.phone}
+              phone={assembleInternationalPhone(form.registerCountryCode, form.registerPhoneNumber)}
+              defaultCountryCode={form.registerCountryCode}
               confirmLabel="Verify & Continue"
               onClose={() => setShowOtpModal(false)}
               onVerified={handleOtpVerified}
@@ -182,23 +235,32 @@ function AuthPage() {
             <label className="mb-2 block text-sm text-slate-300">{t('auth.email')}</label>
             <input
               name="email"
-              type="email"
+              type="text"
               value={form.email}
               onChange={handleChange}
+              placeholder={mode === 'login' ? 'Email (optional if mobile is used)' : 'Email'}
               className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-500"
             />
           </div>
-          {mode === 'register' && (
-            <div>
-              <label className="mb-2 block text-sm text-slate-300">{t('auth.phone')}</label>
-              <input
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder={t('auth.phoneHint')}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-500"
-              />
-            </div>
+          {mode === 'register' ? (
+            <CountryPhoneInput
+              label={t('auth.phone')}
+              countryCode={form.registerCountryCode}
+              onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, registerCountryCode: value }))}
+              phoneNumber={form.registerPhoneNumber}
+              onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, registerPhoneNumber: value }))}
+              required
+              helperText="Saudi: +966 5XXXXXXXX • Pakistan: +92 3XXXXXXXXX"
+            />
+          ) : (
+            <CountryPhoneInput
+              label="Mobile Number (Optional)"
+              countryCode={form.loginCountryCode}
+              onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, loginCountryCode: value }))}
+              phoneNumber={form.loginPhoneNumber}
+              onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, loginPhoneNumber: value }))}
+              helperText="Use this instead of email if your backend login supports phone identifier."
+            />
           )}
           <div>
             <label className="mb-2 block text-sm text-slate-300">{t('auth.password')}</label>

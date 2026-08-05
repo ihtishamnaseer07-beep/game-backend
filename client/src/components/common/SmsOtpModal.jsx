@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import CountryPhoneInput from './CountryPhoneInput';
+import {
+  assembleInternationalPhone,
+  parseInternationalPhone,
+  validatePhoneByCountry,
+} from '../../utils/phoneUtils';
 
 const DEMO_OTP = '7860';
 
@@ -12,11 +18,13 @@ export default function SmsOtpModal({
   title = 'SMS Verification',
   subtitle = 'Enter your mobile number, send the OTP, then verify it to continue.',
   phone: initialPhone = '',
+  defaultCountryCode = '+92',
   onClose,
   onVerified,
   confirmLabel = 'Verify OTP',
 }) {
-  const [phone, setPhone] = useState(initialPhone);
+  const [countryCode, setCountryCode] = useState(defaultCountryCode);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(0);
   const [sent, setSent] = useState(false);
@@ -24,13 +32,15 @@ export default function SmsOtpModal({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setPhone(initialPhone);
+    const parsed = parseInternationalPhone(initialPhone, defaultCountryCode);
+    setCountryCode(parsed.countryCode);
+    setPhoneNumber(parsed.nationalNumber);
     setOtp('');
     setTimer(0);
     setSent(false);
     setMessage('');
     setError('');
-  }, [initialPhone]);
+  }, [initialPhone, defaultCountryCode]);
 
   useEffect(() => {
     if (!sent || timer <= 0) return undefined;
@@ -48,11 +58,13 @@ export default function SmsOtpModal({
     }
   }, [sent, timer]);
 
-  const maskedPhone = useMemo(() => maskPhone(phone), [phone]);
+  const fullPhone = useMemo(() => assembleInternationalPhone(countryCode, phoneNumber), [countryCode, phoneNumber]);
+  const maskedPhone = useMemo(() => maskPhone(fullPhone), [fullPhone]);
 
   const handleSendOtp = () => {
-    if (!phone.trim()) {
-      setError('Mobile number is required.');
+    const validation = validatePhoneByCountry(countryCode, phoneNumber);
+    if (!validation.valid) {
+      setError(validation.message);
       return;
     }
 
@@ -64,6 +76,12 @@ export default function SmsOtpModal({
   };
 
   const handleVerify = () => {
+    const validation = validatePhoneByCountry(countryCode, phoneNumber);
+    if (!validation.valid) {
+      setError(validation.message);
+      return;
+    }
+
     if (otp.trim() !== DEMO_OTP) {
       setError('Invalid OTP. Use 7860 for the mock verification flow.');
       return;
@@ -71,7 +89,12 @@ export default function SmsOtpModal({
 
     setError('');
     setMessage('OTP verified successfully.');
-    onVerified?.({ phone: phone.trim(), otp: otp.trim() });
+    onVerified?.({
+      phone: fullPhone,
+      countryCode,
+      nationalNumber: phoneNumber,
+      otp: otp.trim(),
+    });
   };
 
   return (
@@ -93,15 +116,15 @@ export default function SmsOtpModal({
         <div className="space-y-4 px-5 py-5">
           <p className="text-sm text-slate-400">{subtitle}</p>
 
-          <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">Mobile Number</label>
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="+92 3001234567"
-              className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-500"
-            />
-          </div>
+          <CountryPhoneInput
+            label="Mobile Number"
+            countryCode={countryCode}
+            onCountryCodeChange={setCountryCode}
+            phoneNumber={phoneNumber}
+            onPhoneNumberChange={setPhoneNumber}
+            required
+            helperText="Saudi: +966 5XXXXXXXX • Pakistan: +92 3XXXXXXXXX"
+          />
 
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-3">
             <div>

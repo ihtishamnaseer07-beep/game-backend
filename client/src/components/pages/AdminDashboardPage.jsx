@@ -6,6 +6,7 @@ import NavBar from '../common/NavBar';
 import SectionHeading from '../common/SectionHeading';
 import { API_URL } from '../../config';
 import { REQUESTS_UPDATED_EVENT } from '../../utils/requestQueue';
+import { formatPhoneWithCountry } from '../../utils/phoneUtils';
 
 const ADMIN_KEY = 'admin786';
 const ADMIN_ACCESS_STORAGE_KEY = 'wt786_admin_access';
@@ -744,7 +745,7 @@ function DashboardContent({ onLogout }) {
                     <tr key={user._id} className="border-b border-slate-800/60 last:border-0 align-top">
                       <td className="px-3 py-4">
                         <p className="font-semibold text-white">{user.name}</p>
-                        <p className="text-xs text-slate-500">{user.phone || user.email}</p>
+                        <p className="text-xs text-slate-500">{user.phone ? formatPhoneWithCountry(user.phone) : user.email}</p>
                       </td>
                       <td className="px-3 py-4">
                         <div className="space-y-2">
@@ -812,11 +813,12 @@ function DashboardContent({ onLogout }) {
           <SectionCard title="Deposit Requests" description="Approve or reject incoming deposit proofs. Approve credits the user balance automatically.">
             <RequestTable
               title="Pending Deposits"
-              columns={["User", "Amount", "Gateway", "TID", "Proof"]}
+              columns={["User", "Phone", "Amount", "Gateway", "TID", "Proof"]}
               rows={depositRequests.filter((request) => request.status === 'pending').map((request) => ({
                 id: request.id,
                 cells: [
                   `${request.userName}\n${request.userId || 'No user id'}`,
+                  request.phone ? formatPhoneWithCountry(request.phone) : '-',
                   formatMoney(request.amount),
                   request.gateway,
                   request.tid,
@@ -849,10 +851,16 @@ function DashboardContent({ onLogout }) {
           <SectionCard title="Withdrawal Requests" description="Approve or reject payout requests. Approving deducts the amount from the user's balance.">
             <RequestTable
               title="Pending Withdrawals"
-              columns={["User", "Amount", "Account Details", "Requested"]}
+              columns={["User", "Phone", "Amount", "Account Details", "Requested"]}
               rows={withdrawalRequests.filter((request) => request.status === 'pending').map((request) => ({
                 id: request.id,
-                cells: [request.userName, formatMoney(request.amount), request.accountDetails, formatDate(request.createdAt)],
+                cells: [
+                  request.userName,
+                  request.phone ? formatPhoneWithCountry(request.phone) : '-',
+                  formatMoney(request.amount),
+                  request.accountDetails,
+                  formatDate(request.createdAt),
+                ],
               }))}
               emptyText="No pending withdrawal requests."
               onApprove={handleApproveWithdrawal}

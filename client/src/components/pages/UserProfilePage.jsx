@@ -6,6 +6,7 @@ import AvatarPicker from '../common/AvatarPicker';
 import UserAvatar from '../common/UserAvatar';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
+import { formatPhoneWithCountry } from '../../utils/phoneUtils';
 
 function UserProfilePage() {
   const navigate = useNavigate();
@@ -90,6 +91,10 @@ function UserProfilePage() {
               <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5">
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Current Avatar</p>
                 <p className="mt-3 text-2xl font-semibold text-white">{profile?.avatarLabel || profile?.avatarKey || profile?.avatar || 'Royal Lion'}</p>
+              </div>
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5 sm:col-span-2">
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Mobile Number</p>
+                <p className="mt-3 text-xl font-semibold text-white">{profile?.phone ? formatPhoneWithCountry(profile.phone) : 'Not Added'}</p>
               </div>
             </div>
 
