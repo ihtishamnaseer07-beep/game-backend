@@ -24,6 +24,10 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('authToken') || null);
+  const [phoneVerification, setPhoneVerificationState] = useState(() => {
+    const saved = localStorage.getItem('phoneVerification');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   useEffect(() => {
     if (token) {
@@ -40,6 +44,14 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('authUser');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (phoneVerification) {
+      localStorage.setItem('phoneVerification', JSON.stringify(phoneVerification));
+    } else {
+      localStorage.removeItem('phoneVerification');
+    }
+  }, [phoneVerification]);
 
   const login = (authToken, authUser) => {
     let mergedUser = authUser;
@@ -66,9 +78,17 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setToken(null);
     setUser(null);
+    setPhoneVerificationState(null);
   };
 
-  const value = useMemo(() => ({ user, token, login, logout, updateUser }), [user, token]);
+  const setPhoneVerification = (verification) => {
+    setPhoneVerificationState(verification || null);
+  };
+
+  const value = useMemo(
+    () => ({ user, token, phoneVerification, login, logout, updateUser, setPhoneVerification }),
+    [user, token, phoneVerification],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

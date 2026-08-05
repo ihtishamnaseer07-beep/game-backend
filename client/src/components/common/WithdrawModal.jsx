@@ -39,7 +39,7 @@ function PaymentText({ method, label }) {
 }
 
 export default function WithdrawModal({ balance = 0, onClose }) {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, setPhoneVerification } = useAuth();
   const [gateway, setGateway] = useState('easypaisa');
   const [form, setForm] = useState({ title: '', account: '', amount: '' });
   const [phone, setPhone] = useState(user?.phone || '');
@@ -118,10 +118,18 @@ export default function WithdrawModal({ balance = 0, onClose }) {
     setSubmitted(true);
   };
 
-  const handleOtpVerified = ({ phone: verifiedPhone }) => {
+  const handleOtpVerified = ({ phone: verifiedPhone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
     localStorage.setItem(otpStorageKey, 'true');
     setOtpVerified(true);
     setShowOtpModal(false);
+    setPhoneVerification({
+      verified: !!phoneVerified,
+      phone: verifiedPhone,
+      countryCode,
+      nationalNumber,
+      firebaseUid: firebaseUid || '',
+      verifiedAt: new Date().toISOString(),
+    });
     if (verifiedPhone) setPhone(verifiedPhone);
     if (pendingRequest) {
       finalizeWithdrawal(pendingRequest);

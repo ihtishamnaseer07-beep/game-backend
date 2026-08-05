@@ -43,7 +43,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   const [success, setSuccess] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const { login } = useAuth();
+  const { login, setPhoneVerification } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -167,9 +167,17 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     }
   };
 
-  const handleOtpVerified = async ({ phone, countryCode, nationalNumber }) => {
+  const handleOtpVerified = async ({ phone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
     setShowOtpModal(false);
     setOtpVerified(true);
+    setPhoneVerification({
+      verified: !!phoneVerified,
+      phone,
+      countryCode,
+      nationalNumber,
+      firebaseUid: firebaseUid || '',
+      verifiedAt: new Date().toISOString(),
+    });
     setForm((prev) => ({
       ...prev,
       registerCountryCode: countryCode || prev.registerCountryCode,

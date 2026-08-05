@@ -12,7 +12,7 @@ import {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, setPhoneVerification } = useAuth();
   const { t } = useLanguage();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({
@@ -128,9 +128,17 @@ function AuthPage() {
     }
   };
 
-  const handleOtpVerified = async ({ phone, countryCode, nationalNumber }) => {
+  const handleOtpVerified = async ({ phone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
     setShowOtpModal(false);
     setOtpVerified(true);
+    setPhoneVerification({
+      verified: !!phoneVerified,
+      phone,
+      countryCode,
+      nationalNumber,
+      firebaseUid: firebaseUid || '',
+      verifiedAt: new Date().toISOString(),
+    });
     setForm((prev) => ({
       ...prev,
       registerCountryCode: countryCode || prev.registerCountryCode,
