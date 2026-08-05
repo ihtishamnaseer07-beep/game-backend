@@ -31,33 +31,28 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 function PaymentLogo({ method }) {
   if (method === 'easypaisa') {
     return (
-      <svg viewBox="0 0 120 32" className="h-6 max-h-6 w-auto shrink-0" aria-hidden="true" role="img">
-        <rect x="1" y="1" width="118" height="30" rx="8" fill="#0b5f3a" />
-        <path d="M18 8h10c3 0 5 2 5 5s-2 5-5 5h-6v6h-4V8zm4 8h5c1 0 2-1 2-3s-1-3-2-3h-5v6z" fill="#ffffff" />
-        <path d="M42 8h14v3H46v4h8v3h-8v4h10v3H42V8z" fill="#c7ffd7" />
-        <path d="M62 8h4l5 8 5-8h4v18h-4V14l-5 8-5-8v12h-4V8z" fill="#ffffff" />
-        <path d="M96 8h4l8 18h-4.4l-1.6-3.8H94l-1.6 3.8H88L96 8zm4.7 11.8L98 13l-2.7 6.8h5.4z" fill="#8af0b0" />
-      </svg>
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Easypaisa_logo.png"
+        alt="EasyPaisa"
+        className="max-h-10 w-auto object-contain"
+      />
     );
   }
 
   return (
-    <svg viewBox="0 0 120 32" className="h-6 max-h-6 w-auto shrink-0" aria-hidden="true" role="img">
-      <rect x="1" y="1" width="118" height="30" rx="8" fill="#7a1531" />
-      <path d="M14 8h5.8c4.9 0 8.2 2.7 8.2 6.9 0 4.3-3.4 7.1-8.2 7.1H18v4h-4V8zm4 11h1.4c2.7 0 4.4-1.3 4.4-4s-1.7-4-4.4-4H18v8z" fill="#ffffff" />
-      <path d="M41 8h4l5 14 5-14h4l-7 18h-4.1L41 8z" fill="#ffdce5" />
-      <path d="M64 8h12v3h-8v3h7v3h-7v6h-4V8z" fill="#ffffff" />
-      <path d="M81 8h4v18h-4V8zm7 0h4l7 10V8h4v18h-4l-7-10v10h-4V8z" fill="#ffdce5" />
-      <path d="M108 11h-4V8h10v3h-4v15h-4V11z" fill="#ffffff" />
-    </svg>
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/d/d1/JazzCash_logo.png"
+      alt="JazzCash"
+      className="max-h-10 w-auto object-contain"
+    />
   );
 }
 
 function PaymentText({ method, label }) {
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="mt-2 block text-center text-xs font-bold text-slate-100">
       <PaymentLogo method={method} />
-      <span>{label}</span>
+      <span className="mt-1 block">{label}</span>
     </span>
   );
 }
@@ -186,13 +181,12 @@ export default function DepositModal({ onClose }) {
                     key={m.key}
                     type="button"
                     onClick={() => setMethod(m.key)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
+                    className={`flex flex-col items-center justify-center rounded-xl border p-3 text-xs font-semibold transition-all duration-150 ease-in-out active:scale-95 active:opacity-70 ${
                       method === m.key
                         ? 'border-green-500 bg-green-500/10 text-green-400'
                         : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-500'
                     }`}
                   >
-                    <span className="text-xl">{m.emoji}</span>
                     <PaymentText method={m.key} label={m.label} />
                   </button>
                 ))}
