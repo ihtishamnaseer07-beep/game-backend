@@ -170,6 +170,8 @@ function LoginView({ onGoogle, onStartOtp, otpOpen, otpState, onOtpChange, onSen
 
 function DashboardView({
   owner,
+  sidebarCollapsed,
+  onToggleSidebar,
   tab,
   setTab,
   settings,
@@ -185,15 +187,22 @@ function DashboardView({
   onSignOut,
 }) {
   const bannerText = (settings.bannerImages || []).join('\n');
+  const depositRequests = requests.filter((item) => item.type === 'deposit');
+  const withdrawalRequests = requests.filter((item) => item.type === 'withdrawal');
 
   return (
-    <div className="panel-wrap">
+    <div className={`panel-wrap ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="card side">
-        <h3>Admin</h3>
+        <div className="sidebar-top">
+          <h3>Admin</h3>
+          <button className="btn ghost collapse-btn" onClick={onToggleSidebar}>{sidebarCollapsed ? '>>' : '<<'}</button>
+        </div>
         <div style={{ fontSize: 13, marginBottom: 12 }}>{owner?.email || owner?.phoneNumber || 'Owner'}</div>
         <button className={`tab-btn ${tab === 'branding' ? 'active' : ''}`} onClick={() => setTab('branding')}>Branding and Theme</button>
+        <button className={`tab-btn ${tab === 'games' ? 'active' : ''}`} onClick={() => setTab('games')}>Games (2D/3D)</button>
         <button className={`tab-btn ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>Payment Accounts</button>
         <button className={`tab-btn ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>User Balances and Requests</button>
+        <button className={`tab-btn ${tab === 'announcements' ? 'active' : ''}`} onClick={() => setTab('announcements')}>Announcements</button>
         <button className="tab-btn" onClick={onSignOut}>Sign out</button>
       </aside>
 
@@ -203,16 +212,19 @@ function DashboardView({
             <h2 className="title" style={{ fontSize: 22 }}>Branding and Theme</h2>
             <p className="subtle">Real-time updates for visuals, announcements, and active 2D/3D game URLs.</p>
             <div className="grid-2">
-              <div className="form-row"><label>Primary Color</label><input className="input" value={settings.appTheme.primary} onChange={(e) => patch(['appTheme', 'primary'], e.target.value)} /></div>
-              <div className="form-row"><label>Secondary Color</label><input className="input" value={settings.appTheme.secondary} onChange={(e) => patch(['appTheme', 'secondary'], e.target.value)} /></div>
-              <div className="form-row"><label>Border Color</label><input className="input" value={settings.appTheme.border} onChange={(e) => patch(['appTheme', 'border'], e.target.value)} /></div>
+              <div className="form-row"><label>Primary Color</label><input type="color" className="input color-input" value={settings.appTheme.primary} onChange={(e) => patch(['appTheme', 'primary'], e.target.value)} /></div>
+              <div className="form-row"><label>Secondary Color</label><input type="color" className="input color-input" value={settings.appTheme.secondary} onChange={(e) => patch(['appTheme', 'secondary'], e.target.value)} /></div>
+              <div className="form-row"><label>Border Color</label><input type="color" className="input color-input" value={settings.appTheme.border} onChange={(e) => patch(['appTheme', 'border'], e.target.value)} /></div>
               <div className="form-row"><label>Background</label><input className="input" value={settings.appTheme.background} onChange={(e) => patch(['appTheme', 'background'], e.target.value)} /></div>
               <div className="form-row"><label>Logo URL</label><input className="input" value={settings.gameLogoUrl} onChange={(e) => patch(['gameLogoUrl'], e.target.value)} /></div>
               <div className="form-row"><label>Splash URL</label><input className="input" value={settings.splashScreenUrl} onChange={(e) => patch(['splashScreenUrl'], e.target.value)} /></div>
             </div>
-            <div className="form-row"><label>Announcement</label><textarea className="textarea" value={settings.announcementText} onChange={(e) => patch(['announcementText'], e.target.value)} /></div>
-            <div className="form-row"><label>Banner Images (one URL per line)</label><textarea className="textarea" value={bannerText} onChange={(e) => patch(['bannerImages'], e.target.value.split('\n').map((v) => v.trim()).filter(Boolean))} /></div>
+            <button className="btn" onClick={saveSettings} disabled={saving}>{saving ? 'Saving...' : 'Save Branding'}</button>
+          </>
+        )}
 
+        {tab === 'games' && (
+          <>
             <h3 style={{ marginTop: 16 }}>Active Game URLs (2D/3D)</h3>
             {(settings.gameCatalog || []).map((game, index) => (
               <div key={game.id} className="notice" style={{ marginTop: 8 }}>
@@ -236,6 +248,11 @@ function DashboardView({
                 <div className="form-row"><label>Source URL / Path</label><input className="input" value={game.sourceUrl} onChange={(e) => {
                   const next = [...settings.gameCatalog];
                   next[index] = { ...game, sourceUrl: e.target.value };
+                  patch(['gameCatalog'], ensureOneActiveGame(next));
+                }} /></div>
+                <div className="form-row"><label>Thumbnail URL</label><input className="input" value={game.thumbnailUrl || ''} onChange={(e) => {
+                  const next = [...settings.gameCatalog];
+                  next[index] = { ...game, thumbnailUrl: e.target.value };
                   patch(['gameCatalog'], ensureOneActiveGame(next));
                 }} /></div>
                 <div className="toolbar" style={{ marginTop: 10 }}>
@@ -264,7 +281,7 @@ function DashboardView({
                   isActive: false,
                 },
               ]))}>Add Game</button>
-              <button className="btn" onClick={saveSettings} disabled={saving}>{saving ? 'Saving...' : 'Save Branding'}</button>
+              <button className="btn" onClick={saveSettings} disabled={saving}>{saving ? 'Saving...' : 'Save Games'}</button>
             </div>
           </>
         )}
@@ -299,7 +316,7 @@ function DashboardView({
             <h2 className="title" style={{ fontSize: 22 }}>User Balances and Requests</h2>
             <p className="subtle">Approve/reject deposit and withdrawal requests and adjust user coins.</p>
 
-            <h3 style={{ marginTop: 12 }}>Payment Requests</h3>
+            <h3 style={{ marginTop: 12 }}>Deposit Requests</h3>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -313,7 +330,44 @@ function DashboardView({
                   </tr>
                 </thead>
                 <tbody>
-                  {requests.map((item) => (
+                  {depositRequests.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.type || '-'}</td>
+                      <td>{item.userName || item.userEmail || item.userId || '-'}</td>
+                      <td>{item.gateway || '-'}</td>
+                      <td>{Number(item.amount || 0).toLocaleString('en-PK')}</td>
+                      <td>{item.status || '-'}</td>
+                      <td>
+                        {item.status === 'pending' ? (
+                          <div className="toolbar">
+                            <button className="btn" onClick={() => onApprove(item.id)}>Approve</button>
+                            <button className="btn danger" onClick={() => onReject(item.id)}>Reject</button>
+                          </div>
+                        ) : (
+                          'Processed'
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 style={{ marginTop: 16 }}>Withdrawal Requests</h3>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>User</th>
+                    <th>Gateway</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawalRequests.map((item) => (
                     <tr key={item.id}>
                       <td>{item.type || '-'}</td>
                       <td>{item.userName || item.userEmail || item.userId || '-'}</td>
@@ -368,6 +422,17 @@ function DashboardView({
             </div>
           </>
         )}
+
+        {tab === 'announcements' && (
+          <>
+            <h2 className="title" style={{ fontSize: 22 }}>Announcements</h2>
+            <p className="subtle">Manage dynamic notices and rule text shown in the player app.</p>
+            <div className="form-row"><label>Announcement</label><textarea className="textarea" value={settings.announcementText} onChange={(e) => patch(['announcementText'], e.target.value)} /></div>
+            <div className="form-row"><label>Dynamic Rules</label><textarea className="textarea" value={settings.dynamicRules} onChange={(e) => patch(['dynamicRules'], e.target.value)} /></div>
+            <div className="form-row"><label>Banner Images (one URL per line)</label><textarea className="textarea" value={bannerText} onChange={(e) => patch(['bannerImages'], e.target.value.split('\n').map((v) => v.trim()).filter(Boolean))} /></div>
+            <button className="btn" onClick={saveSettings} disabled={saving}>{saving ? 'Saving...' : 'Save Announcements'}</button>
+          </>
+        )}
       </section>
     </div>
   );
@@ -392,6 +457,7 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [tab, setTab] = useState('branding');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rowLoading, setRowLoading] = useState({});
 
   const authorized = useMemo(() => isAuthorizedOwner(firebaseUser), [firebaseUser]);
@@ -642,6 +708,8 @@ export default function App() {
       ) : (
         <DashboardView
           owner={firebaseUser}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
           tab={tab}
           setTab={setTab}
           settings={settingsDraft}
