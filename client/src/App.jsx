@@ -15,6 +15,7 @@ import { SoundProvider } from './context/SoundContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AppSettingsProvider, useAppSettings } from './context/AppSettingsContext';
+import { matchesSuperAdminIdentity } from './security/adminSecurity';
 import MobileGuard from './components/common/MobileGuard';
 
 function ProtectedRoute({ children }) {
@@ -24,12 +25,16 @@ function ProtectedRoute({ children }) {
 
 function AdminProtectedRoute({ children }) {
   const { firebaseUser, isSuperAdmin } = useAuth();
+  const ownerIdentityMatched = matchesSuperAdminIdentity({
+    email: firebaseUser?.email || '',
+    phone: firebaseUser?.phoneNumber || '',
+  });
 
   if (!firebaseUser) {
     return <AdminLoginPage />;
   }
 
-  if (!isSuperAdmin) {
+  if (!ownerIdentityMatched || !isSuperAdmin) {
     return <Navigate to="/" replace state={{ accessDenied: '404 - Access Denied' }} />;
   }
 

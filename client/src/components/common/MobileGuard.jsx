@@ -22,9 +22,16 @@ function useIsMobile() {
 
 export default function MobileGuard({ children, allowDesktop = false }) {
   const isMobile = useIsMobile();
+  const isAdminPath = typeof window !== 'undefined' && (
+    window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
+  );
 
   // null = still detecting — render nothing to avoid flash
   if (isMobile === null) return null;
+
+  if (isAdminPath) {
+    return children;
+  }
 
   if (!isMobile && !allowDesktop) {
     return (
