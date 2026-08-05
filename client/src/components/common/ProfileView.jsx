@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import AvatarPicker from './AvatarPicker';
+import UserAvatar from './UserAvatar';
 
 const WA_LINK = 'https://wa.me/966593686007?text=Hello%20WIN%20TOON%20786%20Support,%20I%20need%20help%20with%20my%20account.';
 
@@ -60,7 +62,7 @@ function ChangePasswordModal({ onClose }) {
   );
 }
 
-export default function ProfileView({ user, balance, onDeposit, onWithdraw, onInvite, onLogout, onLogin }) {
+export default function ProfileView({ user, balance, onDeposit, onWithdraw, onInvite, onLogout, onLogin, onAvatarChange }) {
   const [section, setSection] = useState(null); // 'tx' | 'games' | 'security'
   const [showPwModal, setShowPwModal] = useState(false);
 
@@ -75,6 +77,45 @@ export default function ProfileView({ user, balance, onDeposit, onWithdraw, onIn
   }
 
   const vipLevel = balance > 10000 ? 3 : balance > 2000 ? 2 : 1;
+  const activeAvatar = user?.avatarImage
+    ? {
+        key: 'custom-photo',
+        label: 'Custom Photo',
+        emoji: '',
+        image: user.avatarImage,
+      }
+    : {
+        key: user?.avatarKey || 'royal-lion',
+        label: user?.avatarLabel || 'Royal Lion',
+        emoji: user?.avatarEmoji || '🦁',
+      };
+
+  const applyAvatar = (avatar) => {
+    onAvatarChange?.({
+      avatarKey: avatar.key,
+      avatarLabel: avatar.label,
+      avatarEmoji: avatar.emoji,
+      avatarImage: '',
+    });
+  };
+
+  const applyCustomAvatar = (avatarImage) => {
+    onAvatarChange?.({
+      avatarKey: 'custom-photo',
+      avatarLabel: 'Custom Photo',
+      avatarEmoji: '',
+      avatarImage,
+    });
+  };
+
+  const clearCustomAvatar = () => {
+    onAvatarChange?.({
+      avatarKey: 'royal-lion',
+      avatarLabel: 'Royal Lion',
+      avatarEmoji: '🦁',
+      avatarImage: '',
+    });
+  };
 
   return (
     <div className="px-4 pb-6">
@@ -84,9 +125,7 @@ export default function ProfileView({ user, balance, onDeposit, onWithdraw, onIn
       <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-5">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-3xl font-extrabold text-white shadow-lg shadow-green-500/30">
-              {user.name?.charAt(0).toUpperCase()}
-            </div>
+            <UserAvatar user={user} sizeClassName="h-16 w-16" className="ring-2 ring-emerald-400/20" />
             <span className="absolute -bottom-1 -right-1 rounded-full bg-yellow-500 border-2 border-slate-900 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-900">
               VIP {vipLevel}
             </span>
@@ -170,6 +209,31 @@ export default function ProfileView({ user, balance, onDeposit, onWithdraw, onIn
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* avatar studio */}
+        <div className="rounded-2xl bg-slate-900 border border-slate-700/60 overflow-hidden">
+          <button
+            onClick={() => setSection(section === 'avatar' ? null : 'avatar')}
+            className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-slate-800/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🖼️</span>
+              <span className="text-sm font-semibold text-white">Avatar Studio</span>
+            </div>
+            <span className={`text-slate-500 transition-transform duration-200 ${section === 'avatar' ? 'rotate-90' : ''}`}>›</span>
+          </button>
+          {section === 'avatar' && (
+            <div className="border-t border-slate-800 px-4 py-4">
+              <AvatarPicker
+                currentAvatarKey={activeAvatar.key}
+                currentImage={user?.avatarImage || ''}
+                onSelectAvatar={applyAvatar}
+                onUploadImage={applyCustomAvatar}
+                onClearImage={clearCustomAvatar}
+              />
             </div>
           )}
         </div>

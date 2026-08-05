@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../common/NavBar';
 import SectionHeading from '../common/SectionHeading';
+import AvatarPicker from '../common/AvatarPicker';
+import UserAvatar from '../common/UserAvatar';
+import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
 
 function UserProfilePage() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
+  const { user: authUser, logout, updateUser } = useAuth();
+  const [profile, setProfile] = useState(authUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,7 +26,16 @@ function UserProfilePage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (res.ok) setProfile(data.user || data);
+        if (res.ok) {
+          const fetchedProfile = data.user || data;
+          setProfile((current) => ({
+            ...fetchedProfile,
+            avatarKey: current?.avatarKey || authUser?.avatarKey || fetchedProfile?.avatarKey,
+            avatarLabel: current?.avatarLabel || authUser?.avatarLabel || fetchedProfile?.avatarLabel,
+            avatarEmoji: current?.avatarEmoji || authUser?.avatarEmoji || fetchedProfile?.avatarEmoji,
+            avatarImage: current?.avatarImage || authUser?.avatarImage || fetchedProfile?.avatarImage,
+          }));
+        }
       } catch {
         // ignore
       } finally {
@@ -34,9 +47,13 @@ function UserProfilePage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
+    logout();
     navigate('/auth');
+  };
+
+  const handleAvatarChange = (updates) => {
+    updateUser(updates);
+    setProfile((current) => (current ? { ...current, ...updates } : current));
   };
 
   if (loading) {
@@ -53,7 +70,7 @@ function UserProfilePage() {
           <div className="rounded-[32px] border border-slate-800 bg-slate-900/80 p-6 shadow-xl ring-1 ring-slate-700">
             <div className="flex flex-col gap-6 rounded-[32px] border border-slate-800 bg-slate-950/80 p-6 shadow-inner ring-1 ring-slate-700 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-5">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cyan-500 text-4xl shadow-lg shadow-cyan-500/20">🛡️</div>
+                <UserAvatar user={profile} sizeClassName="h-20 w-20" className="ring-2 ring-cyan-400/20" />
                 <div>
                   <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Username</p>
                   <h3 className="mt-2 text-3xl font-semibold text-white">{profile?.name || 'Player'}</h3>
@@ -72,8 +89,18 @@ function UserProfilePage() {
               </div>
               <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5">
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Current Avatar</p>
-                <p className="mt-3 text-2xl font-semibold text-white">{profile?.avatar || 'Ninja'}</p>
+                <p className="mt-3 text-2xl font-semibold text-white">{profile?.avatarLabel || profile?.avatarKey || profile?.avatar || 'Royal Lion'}</p>
               </div>
+            </div>
+
+            <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+              <AvatarPicker
+                currentAvatarKey={profile?.avatarKey || 'royal-lion'}
+                currentImage={profile?.avatarImage || ''}
+                onSelectAvatar={(avatar) => handleAvatarChange({ avatarKey: avatar.key, avatarLabel: avatar.label, avatarEmoji: avatar.emoji, avatarImage: '' })}
+                onUploadImage={(avatarImage) => handleAvatarChange({ avatarKey: 'custom-photo', avatarLabel: 'Custom Photo', avatarEmoji: '', avatarImage })}
+                onClearImage={() => handleAvatarChange({ avatarKey: 'royal-lion', avatarLabel: 'Royal Lion', avatarEmoji: '🦁', avatarImage: '' })}
+              />
             </div>
 
             <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-950/70 p-6">

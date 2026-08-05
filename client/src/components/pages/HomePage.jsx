@@ -13,6 +13,7 @@ import InviteModal from '../common/InviteModal';
 import PromoView from '../common/PromoView';
 import SupportView from '../common/SupportView';
 import ProfileView from '../common/ProfileView';
+import UserAvatar from '../common/UserAvatar';
 
 const HOT_GAMES = [
   { id: 1, title: 'Aviator', provider: 'Spribe', emoji: '✈️', color: 'from-blue-700 to-indigo-900' },
@@ -30,6 +31,41 @@ const SLOT_GAMES = [
   { id: 4, title: 'Gates of Olympus', provider: 'Pragmatic', emoji: '⚡', color: 'from-violet-700 to-purple-900' },
 ];
 
+const MINI_GAMES = [
+  { id: 1, title: 'Dragon vs Lion', provider: 'WIN TOON 786', emoji: '🐉🦁', color: 'from-rose-600 to-amber-700' },
+  { id: 2, title: 'Turbo Crash', provider: 'Spribe', emoji: '🚀', color: 'from-cyan-600 to-blue-800' },
+  { id: 3, title: 'Speed Dice', provider: 'BGaming', emoji: '🎲', color: 'from-emerald-600 to-teal-800' },
+  { id: 4, title: 'Lucky Flip', provider: 'WIN TOON 786', emoji: '🪙', color: 'from-yellow-600 to-orange-800' },
+];
+
+const CARD_GAMES = [
+  { id: 1, title: 'Dragon vs Lion', provider: 'WIN TOON 786', emoji: '🃏', color: 'from-rose-600 to-orange-700' },
+  { id: 2, title: 'Royal Blackjack', provider: 'Evolution', emoji: '♠️', color: 'from-slate-700 to-slate-900' },
+  { id: 3, title: 'Card Clash', provider: 'WIN TOON 786', emoji: '🎴', color: 'from-indigo-700 to-violet-900' },
+  { id: 4, title: 'Lucky Pair', provider: 'BGaming', emoji: '💎', color: 'from-cyan-700 to-blue-900' },
+];
+
+const FISHING_GAMES = [
+  { id: 1, title: 'Fish Prawn Crab', provider: 'WG', emoji: '🦀', color: 'from-teal-700 to-cyan-900' },
+  { id: 2, title: 'Ocean Hunter', provider: 'WIN TOON 786', emoji: '🐟', color: 'from-blue-700 to-sky-900' },
+];
+
+const GAMES_BY_CATEGORY = {
+  hot: HOT_GAMES,
+  slot: SLOT_GAMES,
+  mini: MINI_GAMES,
+  cards: CARD_GAMES,
+  fishing: FISHING_GAMES,
+};
+
+const LABEL_BY_CATEGORY = {
+  hot: '🔥 Hot',
+  slot: '🎰 Slots',
+  mini: '⚡ Mini Games',
+  cards: '🃏 Cards',
+  fishing: '🎣 Fishing',
+};
+
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('hot');
   const [modal, setModal]             = useState(null);   // 'login' | 'register'
@@ -37,7 +73,7 @@ export default function HomePage() {
   const [activeGame, setActiveGame]     = useState(null);   // game object
   const [activeTab, setActiveTab]       = useState('home'); // bottom nav tab
   const [showInvite, setShowInvite]     = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { muted, toggleMute, playSound } = useSound();
   const balance = user?.coins ?? 0;
 
@@ -57,9 +93,12 @@ export default function HomePage() {
   const openWallet = (w) => { playSound('modalOpen'); setWalletModal(w); };
   const closeModal = () => { playSound('modalClose'); setModal(null); };
   const closeWallet = () => { playSound('modalClose'); setWalletModal(null); };
+  const adjustBalance = (delta) => {
+    updateUser((prev) => ({ coins: Math.max(0, Number(prev?.coins || 0) + Number(delta || 0)) }));
+  };
 
-  const games = activeCategory === 'slot' ? SLOT_GAMES : HOT_GAMES;
-  const sectionLabel = activeCategory === 'slot' ? '🎰 Slots' : '🔥 Hot';
+  const games = GAMES_BY_CATEGORY[activeCategory] || HOT_GAMES;
+  const sectionLabel = LABEL_BY_CATEGORY[activeCategory] || '🔥 Hot';
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 pb-24">
@@ -72,6 +111,7 @@ export default function HomePage() {
           balance={balance}
           onClose={() => setActiveGame(null)}
           onDeposit={() => { setActiveGame(null); setWalletModal('deposit'); }}
+          onRoundComplete={(roundResult) => adjustBalance(roundResult.delta)}
         />
       )}
       {showInvite && <InviteModal onClose={() => { playSound('modalClose'); setShowInvite(false); }} />}
@@ -100,9 +140,7 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               {/* avatar */}
               <div className="flex items-center gap-1.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-xs font-bold text-white shadow">
-                  {user.name?.charAt(0).toUpperCase() ?? 'U'}
-                </div>
+                  <UserAvatar user={user} sizeClassName="h-7 w-7" className="border-white/10" />
               </div>
               {/* balance chip */}
               <span className="rounded-full bg-yellow-500/20 border border-yellow-500/40 px-2 py-0.5 text-xs font-bold text-yellow-400">
@@ -188,6 +226,7 @@ export default function HomePage() {
             onInvite={() => setShowInvite(true)}
             onLogout={() => { logout(); setActiveTab('home'); }}
             onLogin={() => setModal('login')}
+            onAvatarChange={(updates) => updateUser(updates)}
           />
         </div>
       )}

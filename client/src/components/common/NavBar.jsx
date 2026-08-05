@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
+import UserAvatar from './UserAvatar';
 
 const links = [
   { path: '/', key: 'nav.home' },
@@ -70,16 +71,19 @@ function NavBar() {
             {muted ? t('nav.unmute') : t('nav.mute')}
           </button>
           {user ? (
-            <button
-              type="button"
-              onClick={() => {
-                playSound('exit');
-                logout();
-              }}
-              className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400"
-            >
-              {t('nav.logout')}
-            </button>
+            <div className="flex items-center gap-3">
+              <UserAvatar user={user} sizeClassName="h-10 w-10" />
+              <button
+                type="button"
+                onClick={() => {
+                  playSound('exit');
+                  logout();
+                }}
+                className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400"
+              >
+                {t('nav.logout')}
+              </button>
+            </div>
           ) : (
             <NavLink to="/auth" className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">
               {t('nav.login')}

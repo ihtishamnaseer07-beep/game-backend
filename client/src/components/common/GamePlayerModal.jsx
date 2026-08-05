@@ -1,194 +1,381 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSound } from '../../context/SoundContext';
 
-/* Inline mini-games rendered on canvas — no external URL needed */
 const GAME_ENGINES = {
-  aviator: AviatorGame,
-  slots:   SlotsGame,
-  default: PlaceholderGame,
+  dragonLion: DragonLionGame,
+  fast: FastRoundGame,
 };
 
 function resolveEngine(title = '') {
   const t = title.toLowerCase();
-  if (t.includes('aviator')) return 'aviator';
-  if (t.includes('slot') || t.includes('bonanza') || t.includes('olympus') || t.includes('fortune') || t.includes('mahjong')) return 'slots';
-  return 'default';
+  if (t.includes('dragon') && t.includes('lion')) return 'dragonLion';
+  return 'fast';
 }
 
-/* ── Aviator mini-game ── */
-function AviatorGame() {
-  const canvasRef = useRef(null);
-  const state = useRef({ mult: 1, speed: 0.012, crashed: false, animId: null });
+function getPhaseLabel(secondsLeft) {
+  if (secondsLeft > 6) return 'Betting';
+  if (secondsLeft > 2) return 'Card Reveal';
+  return 'Result';
+}
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+function createDragonRound() {
+  const values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+  const dragon = values[Math.floor(Math.random() * values.length)];
+  const lion = Math.random() < 0.12 ? dragon : values[Math.floor(Math.random() * values.length)];
 
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize();
-    window.addEventListener('resize', resize);
+  return {
+    dragon: { value: dragon, face: toCardFace(dragon) },
+    lion: { value: lion, face: toCardFace(lion) },
+  };
+}
 
-    const draw = () => {
-      const { width: W, height: H } = canvas;
-      const s = state.current;
+function toCardFace(value) {
+  if (value === 14) return 'A';
+  if (value === 13) return 'K';
+  if (value === 12) return 'Q';
+  if (value === 11) return 'J';
+  return String(value);
+}
 
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, W, H);
+function FastRoundGame({ game, balance = 0, onRoundComplete, playSound }) {
+  const [betAmount, setBetAmount] = useState(100);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [roundState, setRoundState] = useState('idle');
+  const [result, setResult] = useState(null);
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const resolvedRef = useRef(false);
 
-      if (!s.crashed) {
-        s.mult += s.speed;
-        s.speed += 0.0002;
-        if (Math.random() < 0.002 * s.mult) s.crashed = true;
-      }
+  const betOptions = [50, 100, 250, 500];
 
-      // grid lines
-      ctx.strokeStyle = 'rgba(99,102,241,0.15)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-      for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-      // curve
-      const progress = Math.min((s.mult - 1) / 20, 1);
-      const ex = W * 0.1 + progress * W * 0.75;
-      const ey = H * 0.85 - progress * H * 0.7;
-
-      ctx.beginPath();
-      ctx.moveTo(W * 0.05, H * 0.88);
-      ctx.quadraticCurveTo(W * 0.3, H * 0.88, ex, ey);
-      ctx.strokeStyle = s.crashed ? '#ef4444' : '#22c55e';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = s.crashed ? '#ef4444' : '#22c55e';
-      ctx.shadowBlur = 10;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // plane emoji
-      if (!s.crashed) {
-        ctx.font = `${Math.min(W, H) * 0.07}px serif`;
-        ctx.fillText('✈️', ex - 16, ey - 10);
-      }
-
-      // multiplier text
-      ctx.font = `bold ${Math.min(W * 0.13, 60)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = s.crashed ? '#ef4444' : '#ffffff';
-      ctx.fillText(s.crashed ? 'CRASHED!' : `${s.mult.toFixed(2)}×`, W / 2, H / 2);
-
-      if (s.crashed) {
-        ctx.font = `${Math.min(W * 0.05, 18)}px sans-serif`;
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('Tap Restart to play again', W / 2, H / 2 + 40);
-      }
-
-      ctx.textAlign = 'left';
-      state.current.animId = requestAnimationFrame(draw);
-    };
-
-    state.current.animId = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(state.current.animId);
-      window.removeEventListener('resize', resize);
-    };
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
-  const restart = () => { state.current = { mult: 1, speed: 0.012, crashed: false, animId: null }; };
+  useEffect(() => {
+    if (roundState !== 'running') return;
 
-  return (
-    <div className="relative w-full h-full">
-      <canvas ref={canvasRef} className="w-full h-full block" />
-      <button
-        onClick={restart}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-green-500 hover:bg-green-400 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-green-500/40 transition-all active:scale-95"
-      >
-        🚀 Restart
-      </button>
-    </div>
-  );
-}
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((current) => (current > 1 ? current - 1 : 0));
+    }, 1000);
 
-/* ── Slots mini-game ── */
-const REEL_SYMBOLS = ['🍒', '🍋', '⭐', '💎', '7️⃣', '🔔', '🍇', '🎰'];
-function SlotsGame() {
-  const [reels, setReels]     = useState(['🎰', '🎰', '🎰']);
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult]   = useState('');
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [roundState]);
 
-  const spin = () => {
-    if (spinning) return;
-    setSpinning(true);
-    setResult('');
-    let count = 0;
-    const iv = setInterval(() => {
-      setReels([
-        REEL_SYMBOLS[Math.floor(Math.random() * REEL_SYMBOLS.length)],
-        REEL_SYMBOLS[Math.floor(Math.random() * REEL_SYMBOLS.length)],
-        REEL_SYMBOLS[Math.floor(Math.random() * REEL_SYMBOLS.length)],
-      ]);
-      count++;
-      if (count >= 14) {
-        clearInterval(iv);
-        setSpinning(false);
-        setReels((prev) => {
-          const final = prev;
-          if (final[0] === final[1] && final[1] === final[2]) setResult('🎉 JACKPOT!');
-          else if (final[0] === final[1] || final[1] === final[2] || final[0] === final[2]) setResult('✅ Small Win!');
-          else setResult('😔 Try Again');
-          return final;
-        });
-      }
-    }, 80);
+  useEffect(() => {
+    if (roundState !== 'running' || secondsLeft !== 0 || resolvedRef.current) return;
+
+    resolvedRef.current = true;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const won = Math.random() > 0.48;
+    const delta = won ? betAmount : -betAmount;
+    const payload = {
+      game: game.title,
+      result: won ? 'WIN' : 'LOSE',
+      betAmount,
+      multiplier: won ? 2 : 0,
+      delta,
+    };
+
+    setResult(payload);
+    setRoundState('result');
+    playSound?.(won ? 'score' : 'hit');
+    onRoundComplete?.(payload);
+
+    timeoutRef.current = setTimeout(() => {
+      setResult(null);
+      setSecondsLeft(0);
+      setRoundState('idle');
+      resolvedRef.current = false;
+    }, 1800);
+  }, [secondsLeft, roundState, betAmount, game.title, onRoundComplete, playSound]);
+
+  const startRound = () => {
+    if (roundState === 'running' || betAmount <= 0 || betAmount > balance) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setResult(null);
+    setSecondsLeft(5);
+    setRoundState('running');
+    resolvedRef.current = false;
+    playSound?.('confirm');
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 bg-slate-950 select-none">
-      <div className="flex gap-4">
-        {reels.map((sym, i) => (
-          <div key={i} className={`flex items-center justify-center w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-slate-800 border-2 text-5xl sm:text-6xl shadow-xl transition-all duration-75 ${spinning ? 'border-yellow-400 scale-105' : 'border-slate-600'}`}>
-            {sym}
-          </div>
-        ))}
-      </div>
-      {result && (
-        <p className={`text-xl font-extrabold ${result.includes('JACKPOT') ? 'text-yellow-400' : result.includes('Win') ? 'text-green-400' : 'text-slate-400'}`}>
-          {result}
-        </p>
-      )}
-      <button
-        onClick={spin}
-        disabled={spinning}
-        className="rounded-full bg-green-500 hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed px-10 py-3 text-base font-bold text-white shadow-lg shadow-green-500/40 transition-all active:scale-95"
-      >
-        {spinning ? '⏳ Spinning…' : '🎰 SPIN'}
-      </button>
-    </div>
-  );
-}
+  const progress = roundState === 'running' ? Math.max((secondsLeft / 5) * 100, 0) : 0;
 
-/* ── Placeholder for other games ── */
-function PlaceholderGame({ title, emoji }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 bg-slate-950 text-center px-6">
-      <span className="text-7xl">{emoji}</span>
-      <h3 className="text-2xl font-extrabold text-white">{title}</h3>
-      <p className="text-slate-400 text-sm max-w-xs">Full game integration coming soon. This is a live preview placeholder.</p>
-      <div className="flex gap-2 flex-wrap justify-center">
-        {['BET Rs 100', 'BET Rs 500', 'BET Rs 1000'].map((b) => (
-          <button key={b} className="rounded-xl bg-green-500/20 border border-green-500/40 hover:bg-green-500/30 px-4 py-2 text-xs font-bold text-green-400 transition-colors">
-            {b}
+    <div className="flex h-full flex-col gap-4 bg-slate-950 px-4 py-4 text-center">
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl">
+        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+          <span>{game.title}</span>
+          <span>{roundState === 'running' ? `${secondsLeft}s` : '5s Fast Round'}</span>
+        </div>
+        <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
+          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="mt-3 text-3xl font-black text-white">{roundState === 'running' ? secondsLeft : 'Ready'}</p>
+        <p className="text-xs text-slate-400">Tap start and the game auto-reveals a win or loss after 5 seconds.</p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {betOptions.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setBetAmount(option)}
+            disabled={roundState === 'running'}
+            className={`rounded-2xl border px-3 py-3 text-xs font-bold transition-all ${
+              betAmount === option
+                ? 'border-green-400 bg-green-500/20 text-green-300'
+                : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600'
+            } ${roundState === 'running' ? 'opacity-60' : ''}`}
+          >
+            Rs {option}
           </button>
         ))}
       </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-left">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Selected Bet</p>
+          <p className="mt-1 text-lg font-black text-white">Rs {betAmount}</p>
+          <p className="text-xs text-slate-400">{betAmount > balance ? 'Balance too low for this stake' : 'Balanced for a quick win/lose round'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={startRound}
+          disabled={roundState === 'running' || betAmount > balance}
+          className="rounded-2xl bg-green-500 px-6 py-4 text-sm font-black text-white shadow-lg shadow-green-500/30 transition-all hover:bg-green-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {roundState === 'running' ? '⏳ Running…' : '⚡ Start 5s Round'}
+        </button>
+      </div>
+
+      <div className="flex-1 rounded-3xl border border-slate-800 bg-slate-900/70 p-4">
+        <div className="flex h-full flex-col items-center justify-center gap-4">
+          <span className="text-6xl sm:text-7xl">{game.emoji}</span>
+          <div className="w-full max-w-xs rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Round Result</p>
+            <p className={`mt-2 text-2xl font-black ${result?.result === 'WIN' ? 'text-green-400' : result?.result === 'LOSE' ? 'text-rose-400' : 'text-white'}`}>
+              {result ? result.result : 'Awaiting start'}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {result ? `${result.result === 'WIN' ? '+' : '-'}Rs ${Math.abs(result.delta).toFixed(2)} balance change` : 'Win result appears automatically after the countdown.'}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ── Main Modal ── */
-export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit }) {
-  const [muted, setMuted]       = useState(false);
+function DragonLionGame({ balance = 0, onRoundComplete, playSound }) {
+  const [betSide, setBetSide] = useState('dragon');
+  const [betAmount, setBetAmount] = useState(100);
+  const [secondsLeft, setSecondsLeft] = useState(10);
+  const [phase, setPhase] = useState('Betting');
+  const [round, setRound] = useState(() => createDragonRound());
+  const [result, setResult] = useState(null);
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const resolvedRef = useRef(false);
+
+  const betOptions = [50, 100, 250, 500];
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    setSecondsLeft(10);
+    setPhase('Betting');
+    setResult(null);
+    setRound(createDragonRound());
+    resolvedRef.current = false;
+
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((current) => (current > 1 ? current - 1 : 0));
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    setPhase(getPhaseLabel(secondsLeft));
+  }, [secondsLeft]);
+
+  useEffect(() => {
+    if (secondsLeft !== 0 || resolvedRef.current) return;
+
+    resolvedRef.current = true;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const winner = round.dragon.value === round.lion.value ? 'tie' : round.dragon.value > round.lion.value ? 'dragon' : 'lion';
+    const won = betSide === winner;
+    const multiplier = winner === 'tie' ? 8 : 2;
+    const delta = won ? Math.round(betAmount * (multiplier - 1)) : -betAmount;
+    const payload = {
+      game: 'Dragon vs Lion',
+      result: won ? 'WIN' : 'LOSE',
+      winner,
+      betSide,
+      betAmount,
+      multiplier: won ? multiplier : 0,
+      delta,
+    };
+
+    setResult(payload);
+    playSound?.(won ? 'score' : 'hit');
+    onRoundComplete?.(payload);
+
+    timeoutRef.current = setTimeout(() => {
+      setRound(createDragonRound());
+      setSecondsLeft(10);
+      setResult(null);
+      setPhase('Betting');
+      resolvedRef.current = false;
+    }, 1800);
+  }, [secondsLeft, round, betSide, betAmount, onRoundComplete, playSound]);
+
+  const dragonIsWinning = round.dragon.value > round.lion.value;
+  const lionIsWinning = round.lion.value > round.dragon.value;
+  const revealActive = secondsLeft <= 6;
+
+  return (
+    <div className="flex h-full flex-col gap-4 bg-slate-950 px-4 py-4 text-center">
+      <div className="rounded-3xl border border-rose-500/20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-4 shadow-2xl shadow-rose-950/20">
+        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+          <span>{phase}</span>
+          <span>{secondsLeft}s</span>
+        </div>
+        <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
+          <div className="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 transition-all duration-300" style={{ width: `${(secondsLeft / 10) * 100}%` }} />
+        </div>
+        <p className="mt-3 text-3xl font-black text-white">Dragon vs Lion</p>
+        <p className="text-xs text-slate-400">Highest card wins. Dragon, Lion, or Tie can payout before the timer ends.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { key: 'dragon', label: 'Dragon', mult: '2x', color: 'from-rose-500 to-orange-600', emoji: '🐉' },
+          { key: 'lion', label: 'Lion', mult: '2x', color: 'from-amber-500 to-yellow-600', emoji: '🦁' },
+          { key: 'tie', label: 'Tie', mult: '8x', color: 'from-violet-500 to-fuchsia-700', emoji: '🤝' },
+        ].map((option) => {
+          const active = betSide === option.key;
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setBetSide(option.key)}
+              disabled={secondsLeft < 3}
+              className={`rounded-2xl border px-2 py-3 text-xs font-bold transition-all ${
+                active
+                  ? 'border-white/40 bg-white/10 text-white ring-2 ring-white/20'
+                  : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600'
+              } ${secondsLeft < 3 ? 'opacity-70' : ''}`}
+            >
+              <span className={`mb-1 flex h-10 items-center justify-center rounded-xl bg-gradient-to-br ${option.color} text-xl shadow-lg`}>
+                {option.emoji}
+              </span>
+              <span className="block leading-tight">{option.label}</span>
+              <span className="block text-[10px] text-slate-400">{option.mult}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {betOptions.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setBetAmount(option)}
+            className={`rounded-2xl border px-3 py-3 text-xs font-bold transition-all ${
+              betAmount === option
+                ? 'border-cyan-400 bg-cyan-500/20 text-cyan-300'
+                : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600'
+            }`}
+          >
+            Rs {option}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {[
+          { key: 'dragon', label: 'Dragon', card: round.dragon, edge: 'from-rose-500 to-red-700', active: dragonIsWinning },
+          { key: 'lion', label: 'Lion', card: round.lion, edge: 'from-amber-500 to-yellow-700', active: lionIsWinning },
+        ].map((card) => (
+          <div
+            key={card.key}
+            className={`relative overflow-hidden rounded-[28px] border p-4 transition-all duration-300 ${
+              revealActive ? 'bg-slate-900' : 'bg-slate-900/70'
+            } ${card.active ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/20' : 'border-slate-800'}`}
+          >
+            <div className={`mx-auto flex h-36 w-full items-center justify-center rounded-[24px] bg-gradient-to-br ${card.edge} ${revealActive ? 'scale-100 opacity-100' : 'scale-95 opacity-90'} transition-all duration-300`}>
+              <div className="flex flex-col items-center gap-2 text-white">
+                <div className="text-4xl">{card.key === 'dragon' ? '🐉' : '🦁'}</div>
+                <div className="rounded-2xl bg-black/20 px-4 py-2 text-4xl font-black shadow-inner backdrop-blur-sm">
+                  {revealActive ? card.card.face : '??'}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="font-bold text-white">{card.label}</span>
+              <span className="text-slate-400">{revealActive ? card.card.value : 'Hidden'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 text-left">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Selected Bet</p>
+            <p className="mt-1 text-lg font-black text-white">{betSide.toUpperCase()} • Rs {betAmount}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => playSound?.('select')}
+            className="rounded-full border border-slate-700 bg-slate-950 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:border-cyan-400 hover:text-white"
+          >
+            Preview
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">{betAmount > balance ? 'Increase balance before joining the round.' : 'The round settles automatically when the timer hits zero.'}</p>
+        {result && (
+          <div className={`mt-3 rounded-2xl border px-4 py-3 ${result.result === 'WIN' ? 'border-emerald-400/30 bg-emerald-500/10' : 'border-rose-400/30 bg-rose-500/10'}`}>
+            <p className={`text-sm font-black ${result.result === 'WIN' ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {result.result} {result.result === 'WIN' ? `+Rs ${Math.abs(result.delta).toFixed(2)}` : `-Rs ${Math.abs(result.delta).toFixed(2)}`}
+            </p>
+            <p className="text-[11px] text-slate-300">{result.winner === 'tie' ? 'The cards matched for a tie round.' : `Winner: ${result.winner.toUpperCase()}`}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] text-slate-500">
+        <span className={`h-2 w-2 rounded-full ${phase === 'Betting' ? 'bg-cyan-400' : 'bg-slate-700'}`} />
+        <span className={`h-2 w-2 rounded-full ${phase === 'Card Reveal' ? 'bg-amber-400' : 'bg-slate-700'}`} />
+        <span className={`h-2 w-2 rounded-full ${phase === 'Result' ? 'bg-rose-400' : 'bg-slate-700'}`} />
+      </div>
+    </div>
+  );
+}
+
+export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit, onRoundComplete }) {
+  const [muted, setMuted] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const containerRef = useRef(null);
+  const { playSound } = useSound();
 
   const engineKey = resolveEngine(game.title);
-  const Engine    = GAME_ENGINES[engineKey];
+  const Engine = GAME_ENGINES[engineKey];
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -213,7 +400,6 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit 
         className="relative flex flex-col w-full max-w-2xl bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-700/60"
         style={{ height: 'min(92vh, 640px)' }}
       >
-        {/* ── Header Bar ── */}
         <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{game.emoji}</span>
@@ -237,12 +423,10 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit 
           </div>
         </div>
 
-        {/* ── Game Canvas Area ── */}
         <div className="flex-1 overflow-hidden">
-          <Engine title={game.title} emoji={game.emoji} />
+          <Engine game={game} balance={balance} onRoundComplete={onRoundComplete} playSound={playSound} />
         </div>
 
-        {/* ── Bottom Control Bar ── */}
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-t border-slate-800 shrink-0">
           <button
             onClick={onDeposit}
@@ -253,7 +437,7 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit 
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setMuted((m) => !m)}
+              onClick={() => setMuted((current) => !current)}
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-base transition-colors"
               title={muted ? 'Unmute' : 'Mute'}
             >

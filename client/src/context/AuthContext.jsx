@@ -2,6 +2,22 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
+function mergeAvatarState(savedUser, nextUser) {
+  if (!savedUser || !nextUser) return nextUser;
+  const savedUserKey = savedUser._id || savedUser.id || savedUser.email;
+  const nextUserKey = nextUser._id || nextUser.id || nextUser.email;
+
+  if (!savedUserKey || savedUserKey !== nextUserKey) return nextUser;
+
+  return {
+    ...nextUser,
+    avatarKey: savedUser.avatarKey ?? nextUser.avatarKey,
+    avatarLabel: savedUser.avatarLabel ?? nextUser.avatarLabel,
+    avatarEmoji: savedUser.avatarEmoji ?? nextUser.avatarEmoji,
+    avatarImage: savedUser.avatarImage ?? nextUser.avatarImage,
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('authUser');
@@ -26,12 +42,25 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const login = (authToken, authUser) => {
+    let mergedUser = authUser;
+    try {
+      const saved = localStorage.getItem('authUser');
+      if (saved) {
+        mergedUser = mergeAvatarState(JSON.parse(saved), authUser);
+      }
+    } catch {
+      mergedUser = authUser;
+    }
     setToken(authToken);
-    setUser(authUser);
+    setUser(mergedUser);
   };
 
   const updateUser = (updates) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+    setUser((prev) => {
+      if (!prev) return prev;
+      const patch = typeof updates === 'function' ? updates(prev) : updates;
+      return patch ? { ...prev, ...patch } : prev;
+    });
   };
 
   const logout = () => {
