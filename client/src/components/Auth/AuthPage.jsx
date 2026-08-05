@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { API_URL } from '../../config';
+import SmsOtpModal from '../common/SmsOtpModal';
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ function AuthPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -19,27 +22,31 @@ function AuthPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage('');
 
     if (mode === 'register' && form.password !== form.confirmPassword) {
       setMessage(t('auth.passwordMismatch'));
-      setLoading(false);
       return;
     }
 
     if (mode === 'register' && !/^\+92\s?3\d{2}\s?\d{7}$/.test(form.phone.trim())) {
       setMessage(t('auth.invalidPhone'));
-      setLoading(false);
       return;
     }
 
-    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-    const payload = mode === 'register'
-      ? { name: form.name, email: form.email, phone: form.phone, password: form.password }
-      : { email: form.email, password: form.password };
+    if (mode === 'register' && !otpVerified) {
+      setShowOtpModal(true);
+      return;
+    }
 
-    try {
+    setLoading(true);
+
+    const submitAuth = async () => {
+      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const payload = mode === 'register'
+        ? { name: form.name, email: form.email, phone: form.phone, password: form.password }
+        : { email: form.email, password: form.password };
+
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,7 +58,6 @@ function AuthPage() {
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
-        // non-JSON: wrong URL, CORS block, or server returning HTML
         const text = await res.text();
         const hint = text.slice(0, 80) || 'empty body';
         throw new Error(`Backend unreachable (${res.status}). URL: ${API_URL} — ${hint}`);
@@ -68,6 +74,46 @@ function AuthPage() {
       setMessage(mode === 'register' ? 'Registration successful!' : 'Login successful!');
       navigate('/profile');
       setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+      setOtpVerified(false);
+      setShowOtpModal(false);
+    };
+
+    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+
+    try {
+      await submitAuth();
+    } catch (error) {
+      setMessage(error.message || 'Something went wrong. Check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpVerified = async ({ phone }) => {
+    setShowOtpModal(false);
+    setOtpVerified(true);
+    setForm((prev) => ({ ...prev, phone: phone || prev.phone }));
+    setMessage('Mobile number verified. Completing registration...');
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name, email: form.email, phone: phone || form.phone, password: form.password }),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await res.json() : {};
+
+      if (!res.ok) throw new Error(data.message || 'Authentication failed');
+
+      if (data.token) login(data.token, data.user);
+
+      setMessage('Registration successful!');
+      navigate('/profile');
+      setForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+      setOtpVerified(false);
     } catch (error) {
       setMessage(error.message || 'Something went wrong. Check your connection.');
     } finally {
@@ -88,20 +134,39 @@ function AuthPage() {
             <p className="text-slate-400">{t('auth.subtitle')}</p>
           </div>
           <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
-                setMessage('');
-              }}
-              className="rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
-            >
-              {mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/admin-login')}
+                className="rounded-full border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-500 hover:text-white"
+              >
+                Admin Login
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'login' ? 'register' : 'login');
+                  setMessage('');
+                }}
+                className="rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+              >
+                {mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}
+              </button>
+            </div>
           </div>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          {showOtpModal && mode === 'register' && (
+            <SmsOtpModal
+              title="Register Mobile Verification"
+              subtitle="Send a demo SMS OTP to verify the mobile number before creating your account."
+              phone={form.phone}
+              confirmLabel="Verify & Continue"
+              onClose={() => setShowOtpModal(false)}
+              onVerified={handleOtpVerified}
+            />
+          )}
           {mode === 'register' && (
             <div>
               <label className="mb-2 block text-sm text-slate-300">{t('auth.fullName')}</label>

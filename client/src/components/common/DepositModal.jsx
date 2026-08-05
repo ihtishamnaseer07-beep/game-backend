@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { appendStoredRequest, DEPOSIT_REQUESTS_STORAGE_KEY } from '../../utils/requestQueue';
 
 const METHODS = [
   {
@@ -61,31 +63,84 @@ function PaymentText({ method, label }) {
 }
 
 export default function DepositModal({ onClose }) {
+  const { user } = useAuth();
   const [method, setMethod] = useState('easypaisa');
   const [amount, setAmount] = useState('');
   const [tid, setTid] = useState('');
+  const [receipt, setReceipt] = useState(null);
+  const [copied, setCopied] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const selected = METHODS.find((m) => m.key === method);
+  const instructions = useMemo(() => [
+    '1. Transfer money to the official account above via EasyPaisa or JazzCash.',
+    '2. Enter the 12-digit Transaction ID (TID / Trx ID) from your SMS receipt.',
+    '3. Upload a screenshot so the admin can verify your payment faster.',
+  ], []);
+
+  const handleCopy = async (text, label) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(''), 1800);
+  };
+
+  const handleReceiptChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setReceipt(file);
+  };
 
   const handleConfirm = (e) => {
     e.preventDefault();
     setError('');
+    if (!user?._id) {
+      setError('Please login before submitting a deposit request.');
+      return;
+    }
     if (!amount || Number(amount) < 100) {
       setError('Minimum deposit amount is Rs 100.');
       return;
     }
-    if (!tid.trim()) {
-      setError('Please enter the Transaction ID (TID).');
+    if (!/^\d{12}$/.test(tid.trim())) {
+      setError('Please enter a valid 12-digit Transaction ID (TID).');
       return;
     }
-    setSubmitted(true);
+
+    const proofReader = receipt
+      ? new FileReader()
+      : null;
+
+    const finalizeDeposit = (receiptData = '') => {
+      appendStoredRequest(DEPOSIT_REQUESTS_STORAGE_KEY, {
+        id: `dep-${Math.random().toString(36).slice(2, 10)}`,
+        userId: user._id,
+        userName: user.name,
+        phone: user.phone || '',
+        amount: Number(amount),
+        gateway: selected.label,
+        accountTitle: selected.title,
+        accountNumber: selected.account,
+        tid: tid.trim(),
+        receiptName: receipt?.name || '',
+        receiptData,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      });
+      setSubmitted(true);
+    };
+
+    if (!proofReader) {
+      finalizeDeposit('');
+      return;
+    }
+
+    proofReader.onload = () => finalizeDeposit(String(proofReader.result || ''));
+    proofReader.readAsDataURL(receipt);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm [-webkit-overflow-scrolling:touch]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
@@ -112,6 +167,7 @@ export default function DepositModal({ onClose }) {
               Your deposit of <span className="text-white font-semibold">Rs {amount}</span> via{' '}
               <span className="text-white font-semibold">{selected.label}</span> has been received.
               <br />TID: <span className="text-yellow-400 font-mono">{tid}</span>
+              <br />Status: <span className="text-cyan-300 font-semibold">Pending Deposit</span>
             </p>
             <p className="text-xs text-slate-500">Funds will be credited within 5–15 minutes after verification.</p>
             <button onClick={onClose} className="mt-2 rounded-xl bg-green-500 hover:bg-green-400 px-8 py-2.5 text-sm font-bold text-white transition-colors">
@@ -149,19 +205,36 @@ export default function DepositModal({ onClose }) {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-400">Account Title</span>
-                  <span className="text-xs font-semibold text-white inline-flex items-center gap-2">
-                    <PaymentLogo method={selected.key} />
-                    <span>{selected.title}</span>
-                  </span>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                    <span className="inline-flex items-center gap-2">
+                      <PaymentLogo method={selected.key} />
+                      <span>{selected.title}</span>
+                    </span>
+                    <button type="button" onClick={() => handleCopy(selected.title, 'title')} className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] font-bold text-slate-300">
+                      {copied === 'title' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400">Number / IBAN</span>
-                  <span className="inline-flex items-center gap-2 text-xs font-mono font-bold text-yellow-400 select-all">
-                    <PaymentLogo method={selected.key} />
-                    <span>{selected.account}</span>
-                  </span>
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-yellow-400 select-all">
+                    <span className="inline-flex items-center gap-2">
+                      <PaymentLogo method={selected.key} />
+                      <span>{selected.account}</span>
+                    </span>
+                    <button type="button" onClick={() => handleCopy(selected.account, 'account')} className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] font-bold text-slate-300">
+                      {copied === 'account' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-200">
+              <p className="font-bold text-cyan-300">Deposit Steps</p>
+              <ul className="mt-2 space-y-1 leading-relaxed">
+                {instructions.map((step) => <li key={step}>{step}</li>)}
+              </ul>
             </div>
 
             {/* quick amounts */}
@@ -205,10 +278,21 @@ export default function DepositModal({ onClose }) {
                 type="text"
                 value={tid}
                 onChange={(e) => setTid(e.target.value)}
-                placeholder="e.g. EP2024081512345"
+                placeholder="12-digit Transaction ID"
                 className="mt-1 w-full rounded-xl bg-slate-800 border border-slate-700 focus:border-green-500 focus:ring-1 focus:ring-green-500/40 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all font-mono"
               />
-              <p className="mt-1 text-[10px] text-slate-500">Found in your payment app's transaction history</p>
+              <p className="mt-1 text-[10px] text-slate-500">Found in your payment app's transaction history.</p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Upload Screenshot / Receipt</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleReceiptChange}
+                className="mt-1 w-full rounded-xl border border-dashed border-slate-700 bg-slate-800/60 px-4 py-3 text-xs text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-xs file:font-bold file:text-slate-950"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">Optional, but recommended for faster approval.</p>
             </div>
 
             {error && (

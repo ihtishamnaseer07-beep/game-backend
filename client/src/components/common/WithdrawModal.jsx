@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import SmsOtpModal from './SmsOtpModal';
+import { appendStoredRequest, WITHDRAWAL_REQUESTS_STORAGE_KEY } from '../../utils/requestQueue';
 
 const GATEWAYS = [
   { key: 'easypaisa', label: 'EasyPaisa', emoji: '🟢' },
@@ -41,10 +44,22 @@ function PaymentText({ method, label }) {
 }
 
 export default function WithdrawModal({ balance = 0, onClose }) {
+  const { user, updateUser } = useAuth();
   const [gateway, setGateway] = useState('easypaisa');
   const [form, setForm] = useState({ title: '', account: '', amount: '' });
+  const [phone, setPhone] = useState(user?.phone || '');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(null);
+
+  const otpStorageKey = `wt786_withdraw_otp_verified_${user?._id || user?.email || 'guest'}`;
+
+  useEffect(() => {
+    setPhone(user?.phone || '');
+    setOtpVerified(localStorage.getItem(otpStorageKey) === 'true');
+  }, [otpStorageKey, user?.phone]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -54,6 +69,11 @@ export default function WithdrawModal({ balance = 0, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+
+    if (!user?._id) {
+      setError('Please login before requesting a withdrawal.');
+      return;
+    }
 
     if (!form.title.trim()) { setError('Account title is required.'); return; }
     if (!form.account.trim()) { setError('Account number is required.'); return; }
@@ -66,14 +86,69 @@ export default function WithdrawModal({ balance = 0, onClose }) {
       return;
     }
 
+    const request = {
+      title: form.title.trim(),
+      account: form.account.trim(),
+      amount: Number(form.amount),
+    };
+
+    if (!otpVerified) {
+      setPendingRequest(request);
+      setShowOtpModal(true);
+      return;
+    }
+
+    finalizeWithdrawal(request);
+  };
+
+  const finalizeWithdrawal = (request) => {
+    updateUser((prev) => ({ coins: Math.max(0, Number(prev?.coins || 0) - Number(request.amount || 0)) }));
+
+    appendStoredRequest(WITHDRAWAL_REQUESTS_STORAGE_KEY, {
+      id: `wd-${Math.random().toString(36).slice(2, 10)}`,
+      userId: user._id,
+      userName: user.name,
+      phone,
+      method: gateway,
+      title: request.title,
+      account: request.account,
+      accountDetails: `${GATEWAYS.find((item) => item.key === gateway)?.label} • ${request.account}`,
+      amount: request.amount,
+      deducted: true,
+      otpVerified: true,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    });
+
     setSubmitted(true);
+  };
+
+  const handleOtpVerified = ({ phone: verifiedPhone }) => {
+    localStorage.setItem(otpStorageKey, 'true');
+    setOtpVerified(true);
+    setShowOtpModal(false);
+    if (verifiedPhone) setPhone(verifiedPhone);
+    if (pendingRequest) {
+      finalizeWithdrawal(pendingRequest);
+      setPendingRequest(null);
+    }
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm [-webkit-overflow-scrolling:touch]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
+      {showOtpModal && (
+        <SmsOtpModal
+          title="Withdraw Mobile Verification"
+          subtitle="Send the demo OTP to verify your mobile number before submitting a withdrawal."
+          phone={phone}
+          confirmLabel="Verify & Submit"
+          onClose={() => setShowOtpModal(false)}
+          onVerified={handleOtpVerified}
+        />
+      )}
       <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl max-h-[90vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
 
         {/* header */}
@@ -81,6 +156,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
           <div>
             <h2 className="text-base font-bold text-white">🏧 Withdraw Funds</h2>
             <p className="text-xs text-slate-500">Available: <span className="text-yellow-400 font-semibold">Rs {balance.toFixed(2)}</span></p>
+            <p className="mt-1 text-[10px] text-slate-500">OTP status: {otpVerified ? 'Verified' : 'Required for first withdrawal'}</p>
           </div>
           <button
             onClick={onClose}
@@ -102,6 +178,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
               </span>
               <br />via <span className="inline-flex items-center gap-2 text-white font-semibold"><PaymentLogo method={gateway} /><span>{GATEWAYS.find((g) => g.key === gateway)?.label}</span></span> has been submitted.
             </p>
+            <p className="text-xs text-cyan-300">Status: Pending Withdrawal</p>
             <p className="text-xs text-slate-500">Processing time: 30 minutes to 24 hours.</p>
             <button onClick={onClose} className="mt-2 rounded-xl bg-green-500 hover:bg-green-400 px-8 py-2.5 text-sm font-bold text-white transition-colors">
               Done
@@ -147,7 +224,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
             {/* account number */}
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {gateway === 'bank' ? 'IBAN / Account Number' : 'Mobile Number'}
+                {gateway === 'bank' ? 'IBAN / Account Number' : 'Mobile / Account Number'}
               </label>
               <input
                 name="account"
@@ -155,6 +232,16 @@ export default function WithdrawModal({ balance = 0, onClose }) {
                 onChange={handleChange}
                 placeholder={gateway === 'bank' ? 'PK36MEZN...' : '03XX-XXXXXXX'}
                 className="mt-1 w-full rounded-xl bg-slate-800 border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none font-mono transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Mobile Number for OTP</label>
+              <input
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+92 3001234567"
+                className="mt-1 w-full rounded-xl bg-slate-800 border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
               />
             </div>
 
@@ -187,7 +274,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
               type="submit"
               className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 active:opacity-70 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all duration-150 ease-in-out"
             >
-              🏧 Submit Withdrawal Request
+              {otpVerified ? '🏧 Submit Withdrawal Request' : '🔐 Verify OTP & Submit'}
             </button>
           </form>
         )}

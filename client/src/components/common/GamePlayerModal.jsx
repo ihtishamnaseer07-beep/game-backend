@@ -448,11 +448,10 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/90 p-2 backdrop-blur-sm [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
       <div
         ref={containerRef}
-        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-950 shadow-2xl"
-        style={{ height: 'min(92vh, 640px)' }}
+        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-950 shadow-2xl max-h-[92vh]"
       >
         <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">

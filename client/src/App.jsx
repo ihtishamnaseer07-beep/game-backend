@@ -7,6 +7,7 @@ import LeaderboardPage from './components/pages/LeaderboardPage';
 import UserProfilePage from './components/pages/UserProfilePage';
 import MatchArenaPage from './components/pages/MatchArenaPage';
 import AdminDashboardPage from './components/pages/AdminDashboardPage';
+import AdminLoginPage from './components/pages/AdminLoginPage';
 import AuthPage from './components/Auth/AuthPage';
 import { SoundProvider } from './context/SoundContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -25,20 +26,19 @@ function App() {
         <SoundProvider>
           <MobileGuard>
           <Router>
-            <main className="min-h-screen w-full bg-slate-950 text-slate-100 overflow-x-hidden overflow-y-auto overscroll-y-auto scroll-smooth [-webkit-overflow-scrolling:touch]">
-              <div className="min-h-screen pb-20">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
-                  <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
-                  <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
-                  <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
-                  <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
-                  <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-                </Routes>
-              </div>
+            <main className="min-h-screen w-full flex flex-col overflow-y-auto pb-24 bg-slate-950 text-slate-100 overflow-x-hidden scroll-smooth [-webkit-overflow-scrolling:touch]">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/admin-login" element={<AdminLoginPage />} />
+                <Route path="/teams" element={<ProtectedRoute><TeamSelectionPage /></ProtectedRoute>} />
+                <Route path="/characters" element={<ProtectedRoute><CharacterSelectionPage /></ProtectedRoute>} />
+                <Route path="/support" element={<ProtectedRoute><SupportCoinPage /></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+                <Route path="/match" element={<ProtectedRoute><MatchArenaPage /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              </Routes>
             </main>
           </Router>
           </MobileGuard>

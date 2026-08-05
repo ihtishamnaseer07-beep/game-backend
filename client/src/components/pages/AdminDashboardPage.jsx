@@ -5,6 +5,7 @@ import { useSound } from '../../context/SoundContext';
 import NavBar from '../common/NavBar';
 import SectionHeading from '../common/SectionHeading';
 import { API_URL } from '../../config';
+import { REQUESTS_UPDATED_EVENT } from '../../utils/requestQueue';
 
 const ADMIN_KEY = 'admin786';
 const ADMIN_ACCESS_STORAGE_KEY = 'wt786_admin_access';
@@ -458,6 +459,22 @@ function DashboardContent({ onLogout }) {
   }, [users]);
 
   useEffect(() => {
+    const syncRequests = () => {
+      const savedDeposits = readJsonStorage(DEPOSIT_REQUESTS_STORAGE_KEY, null);
+      const savedWithdrawals = readJsonStorage(WITHDRAWAL_REQUESTS_STORAGE_KEY, null);
+      if (savedDeposits) setDepositRequests(savedDeposits);
+      if (savedWithdrawals) setWithdrawalRequests(savedWithdrawals);
+    };
+
+    window.addEventListener(REQUESTS_UPDATED_EVENT, syncRequests);
+    window.addEventListener('storage', syncRequests);
+    return () => {
+      window.removeEventListener(REQUESTS_UPDATED_EVENT, syncRequests);
+      window.removeEventListener('storage', syncRequests);
+    };
+  }, []);
+
+  useEffect(() => {
     writeJsonStorage(ADMIN_SETTINGS_STORAGE_KEY, gameSettings);
   }, [gameSettings]);
 
@@ -579,7 +596,7 @@ function DashboardContent({ onLogout }) {
     const request = withdrawalRequests.find((item) => item.id === requestId);
     if (!request) return;
 
-    const applied = await updateUserBalance(request.userId, -Number(request.amount));
+    const applied = request.deducted ? true : await updateUserBalance(request.userId, -Number(request.amount));
     if (!applied) return;
 
     const nextWithdrawals = withdrawalRequests.map((item) => (item.id === requestId ? { ...item, status: 'approved', reviewedAt: new Date().toISOString() } : item));
@@ -589,6 +606,11 @@ function DashboardContent({ onLogout }) {
   };
 
   const handleRejectWithdrawal = (requestId) => {
+    const request = withdrawalRequests.find((item) => item.id === requestId);
+    if (request?.deducted) {
+      updateUserBalance(request.userId, Number(request.amount));
+    }
+
     const nextWithdrawals = withdrawalRequests.map((item) => (item.id === requestId ? { ...item, status: 'rejected', reviewedAt: new Date().toISOString() } : item));
     saveRequests(depositRequests, nextWithdrawals);
     setMessage('Withdrawal request rejected.');
@@ -798,7 +820,7 @@ function DashboardContent({ onLogout }) {
                   formatMoney(request.amount),
                   request.gateway,
                   request.tid,
-                  request.proof ? 'Submitted' : 'Missing',
+                  request.receiptName ? 'Submitted' : 'Missing',
                 ],
               }))}
               emptyText="No pending deposit requests."

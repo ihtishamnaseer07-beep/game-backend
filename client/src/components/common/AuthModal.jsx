@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
+import SmsOtpModal from './SmsOtpModal';
 
 function InputField({ label, name, type = 'text', value, onChange, placeholder, required }) {
   return (
@@ -22,10 +23,12 @@ function InputField({ label, name, type = 'text', value, onChange, placeholder, 
 
 export default function AuthModal({ mode: initialMode, onClose }) {
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
-  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', referral: '' });
+  const [form, setForm] = useState({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -38,7 +41,42 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setMode(m);
     setError('');
     setSuccess('');
-    setForm({ username: '', password: '', confirmPassword: '', referral: '' });
+    setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+    setOtpVerified(false);
+    setShowOtpModal(false);
+  };
+
+  const submitAuth = async () => {
+    setError('');
+    setSuccess('');
+
+    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+    const payload =
+      mode === 'register'
+        ? { name: form.username, email: form.username, phone: form.phone, password: form.password }
+        : { email: form.username, password: form.password };
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await res.json()
+      : { message: `Server error (${res.status})` };
+
+    if (!res.ok) throw new Error(data.message || 'Something went wrong.');
+
+    if (data.token) {
+      login(data.token, data.user);
+      setSuccess(mode === 'register' ? '✅ Account created! Redirecting…' : '✅ Welcome back!');
+      setTimeout(() => {
+        onClose();
+        navigate('/profile');
+      }, 1200);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -47,6 +85,10 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setSuccess('');
 
     if (mode === 'register') {
+      if (!form.phone.trim()) {
+        setError('Mobile number is required for registration.');
+        return;
+      }
       if (form.password !== form.confirmPassword) {
         setError('Passwords do not match.');
         return;
@@ -55,37 +97,36 @@ export default function AuthModal({ mode: initialMode, onClose }) {
         setError('Password must be at least 8 characters.');
         return;
       }
+      if (!otpVerified) {
+        setShowOtpModal(true);
+        return;
+      }
     }
 
     setLoading(true);
-    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-    const payload =
-      mode === 'register'
-        ? { name: form.username, email: form.username, phone: '+92 3001234567', password: form.password }
-        : { email: form.username, password: form.password };
-
     try {
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      await submitAuth();
+      setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+      setOtpVerified(false);
+      setShowOtpModal(false);
+    } catch (err) {
+      setError(err.message || 'Request failed. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const contentType = res.headers.get('content-type') || '';
-      const data = contentType.includes('application/json')
-        ? await res.json()
-        : { message: `Server error (${res.status})` };
-
-      if (!res.ok) throw new Error(data.message || 'Something went wrong.');
-
-      if (data.token) {
-        login(data.token, data.user);
-        setSuccess(mode === 'register' ? '✅ Account created! Redirecting…' : '✅ Welcome back!');
-        setTimeout(() => {
-          onClose();
-          navigate('/profile');
-        }, 1200);
-      }
+  const handleOtpVerified = async ({ phone }) => {
+    setShowOtpModal(false);
+    setOtpVerified(true);
+    if (phone) {
+      setForm((prev) => ({ ...prev, phone }));
+    }
+    setLoading(true);
+    try {
+      await submitAuth();
+      setForm({ username: '', phone: '', password: '', confirmPassword: '', referral: '' });
+      setOtpVerified(false);
     } catch (err) {
       setError(err.message || 'Request failed. Try again.');
     } finally {
@@ -96,7 +137,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   return (
     // backdrop
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm [-webkit-overflow-scrolling:touch]"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl p-5 max-h-[92vh] overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
@@ -125,6 +166,16 @@ export default function AuthModal({ mode: initialMode, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {showOtpModal && mode === 'register' && (
+            <SmsOtpModal
+              title="Register Mobile Verification"
+              subtitle="Send the demo OTP to verify the mobile number before creating your account."
+              phone={form.phone}
+              confirmLabel="Verify & Continue"
+              onClose={() => setShowOtpModal(false)}
+              onVerified={handleOtpVerified}
+            />
+          )}
           <InputField
             label="Mobile / Username / Email"
             name="username"
@@ -133,6 +184,17 @@ export default function AuthModal({ mode: initialMode, onClose }) {
             placeholder="e.g. player786"
             required
           />
+
+          {mode === 'register' && (
+            <InputField
+              label="Mobile Number"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="+92 3001234567"
+              required
+            />
+          )}
 
           <InputField
             label="Password"
