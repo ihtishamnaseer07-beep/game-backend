@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
-const REFERRAL_BASE = 'https://game-client.onrender.com/ref/';
-
 export default function InviteModal({ onClose }) {
   const { user } = useAuth();
-  const referralCode = user?.id?.slice(-6).toUpperCase() ?? 'WIN786';
-  const referralLink = `${REFERRAL_BASE}${referralCode}`;
+  const referralCode = user?.referralCode || 'WIN786';
+  const referralLink = user?.referralLink || `${window.location.origin}/auth?ref=${referralCode}`;
 
   const [copied, setCopied] = useState(false);
-  const stats = { invited: 0, earned: 0 };
+  const stats = {
+    invited: Number(user?.referralStats?.invitedCount || 0),
+    earned: Number(user?.referralStats?.referralCoinsEarned || 0),
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink).then(() => {
@@ -32,7 +33,7 @@ export default function InviteModal({ onClose }) {
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
           <div>
             <h2 className="text-base font-bold text-white">🎁 Invite & Earn</h2>
-            <p className="text-xs text-slate-500">Earn Rs 200 per friend who deposits</p>
+            <p className="text-xs text-slate-500">Earn Rs 200 when a friend signs up with your link</p>
           </div>
           <button
             onClick={onClose}
@@ -76,6 +77,7 @@ export default function InviteModal({ onClose }) {
                 {copied ? '✅ Copied!' : '📋 Copy'}
               </button>
             </div>
+            <p className="mt-2 text-[11px] text-slate-500">Referral code: <span className="font-mono text-cyan-300">{referralCode}</span></p>
           </div>
 
           {/* share buttons */}
@@ -118,7 +120,7 @@ export default function InviteModal({ onClose }) {
             <ol className="flex flex-col gap-1 text-xs text-slate-400 list-decimal list-inside">
               <li>Share your referral link with friends</li>
               <li>Friend registers using your link</li>
-              <li>Friend makes their first deposit</li>
+              <li>Your bonus is credited after the signup completes</li>
               <li>You earn <span className="text-green-400 font-semibold">Rs 200</span> instantly!</li>
             </ol>
           </div>

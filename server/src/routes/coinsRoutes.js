@@ -9,13 +9,17 @@ import {
   updateCoin,
   deleteCoin,
   claimDailyBonus,
+  spinLuckyWheel,
+  getDailyRewardsStatus,
 } from '../controllers/coinController.js';
 
 const router = express.Router();
 
 router.get('/', authenticate, authorize(['admin']), listCoins);
 router.get('/me', authenticate, getCoin);
+router.get('/daily-status', authenticate, getDailyRewardsStatus);
 router.post('/daily-bonus', authenticate, claimDailyBonus);
+router.post('/daily-spin', authenticate, spinLuckyWheel);
 router.post(
   '/',
   authenticate,

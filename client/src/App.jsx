@@ -10,6 +10,7 @@ import MatchArenaPage from './components/pages/MatchArenaPage';
 import AdminDashboardPage from './components/pages/AdminDashboardPage';
 import AdminLoginPage from './components/pages/AdminLoginPage';
 import AuthPage from './components/Auth/AuthPage';
+import FloatingSupportButton from './components/common/FloatingSupportButton';
 import { SoundProvider } from './context/SoundContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -92,6 +93,7 @@ function App() {
                 <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               </Routes>
             </main>
+            <FloatingSupportButton />
           </Router>
           </MobileGuard>
         </SoundProvider>

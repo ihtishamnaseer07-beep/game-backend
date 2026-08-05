@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { appendStoredRequest, DEPOSIT_REQUESTS_STORAGE_KEY } from '../../utils/requestQueue';
+import { API_URL } from '../../config';
 
 const METHODS = [
   {
@@ -76,13 +76,14 @@ function PaymentText({ method, label }) {
 }
 
 export default function DepositModal({ onClose }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [method, setMethod] = useState('easypaisa');
   const [amount, setAmount] = useState('');
   const [tid, setTid] = useState('');
   const [receipt, setReceipt] = useState(null);
   const [copied, setCopied] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const selected = METHODS.find((m) => m.key === method);
@@ -103,7 +104,7 @@ export default function DepositModal({ onClose }) {
     setReceipt(file);
   };
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
     setError('');
     if (!user?._id) {
@@ -119,36 +120,47 @@ export default function DepositModal({ onClose }) {
       return;
     }
 
-    const proofReader = receipt
-      ? new FileReader()
-      : null;
+    const readReceiptData = () => new Promise((resolve, reject) => {
+      if (!receipt) {
+        resolve('');
+        return;
+      }
 
-    const finalizeDeposit = (receiptData = '') => {
-      appendStoredRequest(DEPOSIT_REQUESTS_STORAGE_KEY, {
-        id: `dep-${Math.random().toString(36).slice(2, 10)}`,
-        userId: user._id,
-        userName: user.name,
-        phone: user.phone || '',
-        amount: Number(amount),
-        gateway: selected.label,
-        accountTitle: selected.title,
-        accountNumber: selected.account,
-        tid: tid.trim(),
-        receiptName: receipt?.name || '',
-        receiptData,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
+      const proofReader = new FileReader();
+      proofReader.onload = () => resolve(String(proofReader.result || ''));
+      proofReader.onerror = () => reject(new Error('Unable to read screenshot.'));
+      proofReader.readAsDataURL(receipt);
+    });
+
+    setLoading(true);
+
+    try {
+      const receiptData = await readReceiptData();
+      const response = await fetch(`${API_URL}/api/payments/requests/deposit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: Number(amount),
+          gateway: selected.label,
+          transactionId: tid.trim(),
+          accountTitle: selected.title,
+          accountNumber: selected.account,
+          receiptName: receipt?.name || '',
+          receiptData,
+        }),
       });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Unable to submit deposit request.');
       setSubmitted(true);
-    };
-
-    if (!proofReader) {
-      finalizeDeposit('');
-      return;
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to submit deposit request.');
+    } finally {
+      setLoading(false);
     }
-
-    proofReader.onload = () => finalizeDeposit(String(proofReader.result || ''));
-    proofReader.readAsDataURL(receipt);
   };
 
   return (
@@ -317,7 +329,7 @@ export default function DepositModal({ onClose }) {
               type="submit"
               className="w-full rounded-xl bg-green-500 hover:bg-green-400 active:scale-95 active:opacity-70 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all duration-150 ease-in-out"
             >
-              ✅ Confirm Deposit
+              {loading ? 'Submitting...' : '✅ Confirm Deposit'}
             </button>
           </form>
         )}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import SmsOtpModal from './SmsOtpModal';
-import { appendStoredRequest, WITHDRAWAL_REQUESTS_STORAGE_KEY } from '../../utils/requestQueue';
+import { API_URL } from '../../config';
 
 const GATEWAYS = [
   { key: 'easypaisa', label: 'EasyPaisa', emoji: '🟢' },
@@ -57,7 +57,7 @@ function PaymentText({ method, label }) {
 }
 
 export default function WithdrawModal({ balance = 0, onClose }) {
-  const { user, updateUser, setPhoneVerification } = useAuth();
+  const { user, token, setPhoneVerification } = useAuth();
   const [gateway, setGateway] = useState('easypaisa');
   const [form, setForm] = useState({ title: '', account: '', amount: '' });
   const [phone, setPhone] = useState(user?.phone || '');
@@ -66,6 +66,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const otpStorageKey = `wt786_withdraw_otp_verified_${user?._id || user?.email || 'guest'}`;
 
@@ -115,25 +116,32 @@ export default function WithdrawModal({ balance = 0, onClose }) {
   };
 
   const finalizeWithdrawal = (request) => {
-    updateUser((prev) => ({ coins: Math.max(0, Number(prev?.coins || 0) - Number(request.amount || 0)) }));
+    setLoading(true);
 
-    appendStoredRequest(WITHDRAWAL_REQUESTS_STORAGE_KEY, {
-      id: `wd-${Math.random().toString(36).slice(2, 10)}`,
-      userId: user._id,
-      userName: user.name,
-      phone,
-      method: gateway,
-      title: request.title,
-      account: request.account,
-      accountDetails: `${GATEWAYS.find((item) => item.key === gateway)?.label} • ${request.account}`,
-      amount: request.amount,
-      deducted: true,
-      otpVerified: true,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    });
-
-    setSubmitted(true);
+    fetch(`${API_URL}/api/payments/requests/withdrawal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        amount: request.amount,
+        gateway: GATEWAYS.find((item) => item.key === gateway)?.label || gateway,
+        accountTitle: request.title,
+        accountNumber: request.account,
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Unable to submit withdrawal request.');
+        setSubmitted(true);
+      })
+      .catch((submitError) => {
+        setError(submitError.message || 'Unable to submit withdrawal request.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleOtpVerified = ({ phone: verifiedPhone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
@@ -294,7 +302,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
               type="submit"
               className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 active:opacity-70 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all duration-150 ease-in-out"
             >
-              {otpVerified ? '🏧 Submit Withdrawal Request' : '🔐 Verify OTP & Submit'}
+              {loading ? 'Submitting...' : otpVerified ? '🏧 Submit Withdrawal Request' : '🔐 Verify OTP & Submit'}
             </button>
           </form>
         )}

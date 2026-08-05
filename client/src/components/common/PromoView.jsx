@@ -29,7 +29,7 @@ const PROMOS = [
     id: 3,
     emoji: '🤝',
     title: 'Invite Friend & Earn',
-    desc: 'Refer a friend who deposits and earn Rs 200 cash commission — no limit!',
+    desc: 'Refer a friend who signs up and earn Rs 200 cash commission — no limit!',
     badge: 'Rs 200 / FRIEND',
     badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
     gradient: 'from-orange-900/40 to-slate-800/60',

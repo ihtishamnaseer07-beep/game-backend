@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
 import SmsOtpModal from './SmsOtpModal';
 import CountryPhoneInput from './CountryPhoneInput';
+import { clearStoredReferralCode, getStoredReferralCode } from '../../utils/referral';
 import {
   assembleInternationalPhone,
   validatePhoneByCountry,
@@ -29,7 +30,9 @@ function InputField({ label, name, type = 'text', value, onChange, placeholder, 
 export default function AuthModal({ mode: initialMode, onClose }) {
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
   const [form, setForm] = useState({
-    username: '',
+    name: '',
+    email: '',
+    identifier: '',
     password: '',
     confirmPassword: '',
     referral: '',
@@ -46,6 +49,12 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   const { login, setPhoneVerification } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedReferral = getStoredReferralCode();
+    if (!storedReferral) return;
+    setForm((prev) => ({ ...prev, referral: prev.referral || storedReferral }));
+  }, []);
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
@@ -56,10 +65,12 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     setError('');
     setSuccess('');
     setForm({
-      username: '',
+      name: '',
+      email: '',
+      identifier: '',
       password: '',
       confirmPassword: '',
-      referral: '',
+      referral: getStoredReferralCode(),
       registerCountryCode: '+92',
       registerPhoneNumber: '',
       loginCountryCode: '+966',
@@ -79,10 +90,10 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     const loginPhone = loginPhoneDigits
       ? assembleInternationalPhone(form.loginCountryCode, form.loginPhoneNumber)
       : '';
-    const loginIdentifier = loginPhone || form.username;
+    const loginIdentifier = loginPhone || form.identifier;
     const payload =
       mode === 'register'
-        ? { name: form.username, email: form.username, phone: registerPhone, password: form.password }
+        ? { name: form.name, email: form.email, phone: registerPhone, password: form.password, referral: form.referral }
         : { identifier: loginIdentifier, password: form.password };
 
     if (mode === 'login') {
@@ -93,7 +104,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
         }
       }
       if (!loginIdentifier?.trim()) {
-        throw new Error('Please enter username/email or mobile number.');
+        throw new Error('Please enter email or mobile number.');
       }
     }
 
@@ -112,6 +123,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
 
     if (data.token) {
       login(data.token, data.user);
+      if (mode === 'register' && form.referral) clearStoredReferralCode();
       setSuccess(mode === 'register' ? '✅ Account created! Redirecting…' : '✅ Welcome back!');
       setTimeout(() => {
         onClose();
@@ -149,10 +161,12 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     try {
       await submitAuth();
       setForm({
-        username: '',
+        name: '',
+        email: '',
+        identifier: '',
         password: '',
         confirmPassword: '',
-        referral: '',
+        referral: getStoredReferralCode(),
         registerCountryCode: '+92',
         registerPhoneNumber: '',
         loginCountryCode: '+966',
@@ -187,10 +201,12 @@ export default function AuthModal({ mode: initialMode, onClose }) {
     try {
       await submitAuth();
       setForm({
-        username: '',
+        name: '',
+        email: '',
+        identifier: '',
         password: '',
         confirmPassword: '',
-        referral: '',
+        referral: getStoredReferralCode(),
         registerCountryCode: '+92',
         registerPhoneNumber: '',
         loginCountryCode: '+966',
@@ -248,13 +264,25 @@ export default function AuthModal({ mode: initialMode, onClose }) {
             />
           )}
           <InputField
-            label="Mobile / Username / Email"
-            name="username"
-            value={form.username}
+            label={mode === 'login' ? 'Email' : 'Full Name'}
+            name={mode === 'login' ? 'identifier' : 'name'}
+            value={mode === 'login' ? form.identifier : form.name}
             onChange={handleChange}
-            placeholder="e.g. player786"
+            placeholder={mode === 'login' ? 'e.g. player786@example.com' : 'e.g. Ali Hassan'}
             required={!form.loginPhoneNumber}
           />
+
+          {mode === 'register' && (
+            <InputField
+              label="Email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="e.g. player786@example.com"
+              required
+            />
+          )}
 
           {mode === 'register' ? (
             <CountryPhoneInput
@@ -273,7 +301,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
               onCountryCodeChange={(value) => setForm((prev) => ({ ...prev, loginCountryCode: value }))}
               phoneNumber={form.loginPhoneNumber}
               onPhoneNumberChange={(value) => setForm((prev) => ({ ...prev, loginPhoneNumber: value }))}
-              helperText="Use mobile or username/email; login sends a single identifier field."
+              helperText="Use mobile or email; login sends a single identifier field."
             />
           )}
 

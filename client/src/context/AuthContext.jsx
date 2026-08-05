@@ -2,15 +2,27 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
-function mergeAvatarState(savedUser, nextUser) {
-  if (!savedUser || !nextUser) return nextUser;
-  const savedUserKey = savedUser._id || savedUser.id || savedUser.email;
-  const nextUserKey = nextUser._id || nextUser.id || nextUser.email;
-
-  if (!savedUserKey || savedUserKey !== nextUserKey) return nextUser;
+function normalizeAuthUser(authUser) {
+  if (!authUser) return authUser;
+  const id = authUser._id || authUser.id;
 
   return {
-    ...nextUser,
+    ...authUser,
+    _id: id || authUser._id,
+    id: id || authUser.id,
+  };
+}
+
+function mergeAvatarState(savedUser, nextUser) {
+  if (!savedUser || !nextUser) return normalizeAuthUser(nextUser);
+  const normalizedNextUser = normalizeAuthUser(nextUser);
+  const savedUserKey = savedUser._id || savedUser.id || savedUser.email;
+  const nextUserKey = normalizedNextUser._id || normalizedNextUser.id || normalizedNextUser.email;
+
+  if (!savedUserKey || savedUserKey !== nextUserKey) return normalizedNextUser;
+
+  return {
+    ...normalizedNextUser,
     avatarKey: savedUser.avatarKey ?? nextUser.avatarKey,
     avatarLabel: savedUser.avatarLabel ?? nextUser.avatarLabel,
     avatarEmoji: savedUser.avatarEmoji ?? nextUser.avatarEmoji,
@@ -54,14 +66,14 @@ export function AuthProvider({ children }) {
   }, [phoneVerification]);
 
   const login = (authToken, authUser) => {
-    let mergedUser = authUser;
+    let mergedUser = normalizeAuthUser(authUser);
     try {
       const saved = localStorage.getItem('authUser');
       if (saved) {
         mergedUser = mergeAvatarState(JSON.parse(saved), authUser);
       }
     } catch {
-      mergedUser = authUser;
+      mergedUser = normalizeAuthUser(authUser);
     }
     setToken(authToken);
     setUser(mergedUser);
@@ -71,7 +83,7 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       if (!prev) return prev;
       const patch = typeof updates === 'function' ? updates(prev) : updates;
-      return patch ? { ...prev, ...patch } : prev;
+      return patch ? normalizeAuthUser({ ...prev, ...patch }) : prev;
     });
   };
 

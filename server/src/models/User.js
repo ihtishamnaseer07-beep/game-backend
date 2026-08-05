@@ -16,8 +16,13 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: { type: Date },
   lastClaimedAt: { type: Date },
   lastLoginBonus: { type: Date },
+  lastSpinAt: { type: Date },
   currency: { type: String, default: 'PKR' },
   preferredPaymentMethod: { type: String, default: '' },
+  referralCode: { type: String, uppercase: true, trim: true, unique: true, sparse: true },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  invitedCount: { type: Number, default: 0 },
+  referralCoinsEarned: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 

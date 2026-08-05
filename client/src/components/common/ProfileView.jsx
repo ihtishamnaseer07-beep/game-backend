@@ -1,14 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AvatarPicker from './AvatarPicker';
 import UserAvatar from './UserAvatar';
+import { API_URL } from '../../config';
+import { useAuth } from '../../context/AuthContext';
 
 const WA_LINK = 'https://wa.me/966593686007?text=Hello%20WIN%20TOON%20786%20Support,%20I%20need%20help%20with%20my%20account.';
-
-const TX_HISTORY = [
-  { id: 1, type: 'Deposit', amount: '+Rs 1000', method: 'EasyPaisa', status: 'Success', date: '2026-08-04' },
-  { id: 2, type: 'Withdraw', amount: '-Rs 500', method: 'JazzCash', status: 'Pending', date: '2026-08-03' },
-  { id: 3, type: 'Bonus', amount: '+Rs 200', method: 'Referral', status: 'Success', date: '2026-08-02' },
-];
 
 const GAME_HISTORY = [
   { id: 1, game: 'Aviator ✈️', result: 'Win', amount: '+Rs 450', mult: '2.25×', date: '2026-08-04' },
@@ -63,8 +59,33 @@ function ChangePasswordModal({ onClose }) {
 }
 
 export default function ProfileView({ user, balance, onDeposit, onWithdraw, onInvite, onLogout, onLogin, onAvatarChange }) {
+  const { token } = useAuth();
   const [section, setSection] = useState(null); // 'tx' | 'games' | 'security'
   const [showPwModal, setShowPwModal] = useState(false);
+  const [txHistory, setTxHistory] = useState([]);
+  const [copyState, setCopyState] = useState(false);
+
+  useEffect(() => {
+    if (!token || !user?._id || section !== 'tx') return;
+
+    let active = true;
+
+    fetch(`${API_URL}/api/payments/requests/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Unable to load transaction history.');
+        if (active) setTxHistory(data.requests || []);
+      })
+      .catch(() => {
+        if (active) setTxHistory([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [section, token, user?._id]);
 
   if (!user) {
     return (
@@ -149,6 +170,29 @@ export default function ProfileView({ user, balance, onDeposit, onWithdraw, onIn
             🏧 Withdraw
           </button>
         </div>
+
+        <div className="mt-4 rounded-2xl border border-orange-500/20 bg-orange-500/10 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-orange-300">Referral Link</p>
+              <p className="mt-1 text-xs text-slate-300 truncate">{user.referralLink || `${window.location.origin}/auth?ref=${user.referralCode || ''}`}</p>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(user.referralLink || `${window.location.origin}/auth?ref=${user.referralCode || ''}`);
+                setCopyState(true);
+                setTimeout(() => setCopyState(false), 1800);
+              }}
+              className="rounded-xl border border-orange-500/30 bg-slate-900 px-3 py-2 text-xs font-bold text-orange-300"
+            >
+              {copyState ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <span>Invited: {Number(user?.referralStats?.invitedCount || 0)}</span>
+            <span>Earned: Rs {Number(user?.referralStats?.referralCoinsEarned || 0).toFixed(0)}</span>
+          </div>
+        </div>
       </div>
 
       {/* action menu */}
@@ -167,18 +211,18 @@ export default function ProfileView({ user, balance, onDeposit, onWithdraw, onIn
           </button>
           {section === 'tx' && (
             <div className="border-t border-slate-800 px-4 py-3 flex flex-col gap-2">
-              {TX_HISTORY.map((tx) => (
+              {txHistory.length ? txHistory.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between py-1.5 border-b border-slate-800/60 last:border-0">
                   <div>
-                    <p className="text-xs font-semibold text-white">{tx.type} — {tx.method}</p>
-                    <p className="text-[10px] text-slate-500">{tx.date}</p>
+                    <p className="text-xs font-semibold text-white">{tx.type === 'deposit' ? 'Deposit' : 'Withdraw'} — {tx.gateway}</p>
+                    <p className="text-[10px] text-slate-500">{new Date(tx.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-xs font-bold ${tx.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{tx.amount}</p>
-                    <p className={`text-[10px] ${tx.status === 'Success' ? 'text-green-500' : 'text-yellow-500'}`}>{tx.status}</p>
+                    <p className={`text-xs font-bold ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>{tx.type === 'deposit' ? '+' : '-'}Rs {Number(tx.amount || 0).toFixed(0)}</p>
+                    <p className={`text-[10px] ${tx.status === 'approved' ? 'text-green-500' : tx.status === 'rejected' ? 'text-red-500' : 'text-yellow-500'}`}>{tx.status}</p>
                   </div>
                 </div>
-              ))}
+              )) : <p className="text-xs text-slate-500">No deposit or withdrawal requests yet.</p>}
             </div>
           )}
         </div>

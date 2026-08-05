@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: 'How does the referral system work?',
-    a: 'Share your unique referral link. When a friend registers and makes their first deposit, you earn Rs 200 commission automatically credited to your balance.',
+    a: 'Share your unique referral link. When a friend registers through it, you earn Rs 200 commission automatically credited to your balance.',
   },
 ];
 

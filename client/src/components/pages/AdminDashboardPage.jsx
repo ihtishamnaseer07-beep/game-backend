@@ -371,6 +371,7 @@ function DashboardContent({ onLogout }) {
   const [balanceDrafts, setBalanceDrafts] = useState({});
   const [depositRequests, setDepositRequests] = useState([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+  const [paymentTab, setPaymentTab] = useState('deposits');
   const [gameSettings, setGameSettings] = useState(() => readJsonStorage(ADMIN_SETTINGS_STORAGE_KEY, { mode: 'auto', winRate: 56 }));
   const [liveBets, setLiveBets] = useState([]);
   const [loadingFeed, setLoadingFeed] = useState(false);
@@ -401,22 +402,24 @@ function DashboardContent({ onLogout }) {
 
     setLoading(true);
     try {
-      const [usersRes, matchesRes, teamsRes, packagesRes, supportRes, coinsRes] = await Promise.all([
+      const [usersRes, matchesRes, teamsRes, packagesRes, supportRes, coinsRes, paymentRes] = await Promise.all([
         fetch(`${API_URL}/api/admin-panel/users`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/admin-panel/matches`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/admin-panel/teams`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/admin-panel/coin-packages`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/support-history`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/coins`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/payments/admin/requests`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
-      const [usersData, matchesData, teamsData, packagesData, supportData, coinsData] = await Promise.all([
+      const [usersData, matchesData, teamsData, packagesData, supportData, coinsData, paymentData] = await Promise.all([
         usersRes.json(),
         matchesRes.json(),
         teamsRes.json(),
         packagesRes.json(),
         supportRes.json(),
         coinsRes.json(),
+        paymentRes.json(),
       ]);
 
       if (usersRes.ok) setUsers(usersData.users || []);
@@ -425,6 +428,11 @@ function DashboardContent({ onLogout }) {
       if (packagesRes.ok) setPackages(packagesData.packages || []);
       if (supportRes.ok) setSupportHistory(supportData.history || []);
       if (coinsRes.ok) setCoinHistory(coinsData.coins || []);
+      if (paymentRes.ok) {
+        const requests = paymentData.requests || [];
+        setDepositRequests(requests.filter((request) => request.type === 'deposit'));
+        setWithdrawalRequests(requests.filter((request) => request.type === 'withdrawal'));
+      }
     } catch (error) {
       setMessage(error.message || 'Could not load admin data.');
     } finally {
@@ -435,45 +443,6 @@ function DashboardContent({ onLogout }) {
   useEffect(() => {
     loadData();
   }, [token]);
-
-  useEffect(() => {
-    if (!users.length) return;
-
-    const savedDeposits = readJsonStorage(DEPOSIT_REQUESTS_STORAGE_KEY, null);
-    const savedWithdrawals = readJsonStorage(WITHDRAWAL_REQUESTS_STORAGE_KEY, null);
-
-    if (!savedDeposits) {
-      const depositSeeds = buildInitialDepositRequests(users);
-      setDepositRequests(depositSeeds);
-      writeJsonStorage(DEPOSIT_REQUESTS_STORAGE_KEY, depositSeeds);
-    } else {
-      setDepositRequests(savedDeposits);
-    }
-
-    if (!savedWithdrawals) {
-      const withdrawalSeeds = buildInitialWithdrawalRequests(users);
-      setWithdrawalRequests(withdrawalSeeds);
-      writeJsonStorage(WITHDRAWAL_REQUESTS_STORAGE_KEY, withdrawalSeeds);
-    } else {
-      setWithdrawalRequests(savedWithdrawals);
-    }
-  }, [users]);
-
-  useEffect(() => {
-    const syncRequests = () => {
-      const savedDeposits = readJsonStorage(DEPOSIT_REQUESTS_STORAGE_KEY, null);
-      const savedWithdrawals = readJsonStorage(WITHDRAWAL_REQUESTS_STORAGE_KEY, null);
-      if (savedDeposits) setDepositRequests(savedDeposits);
-      if (savedWithdrawals) setWithdrawalRequests(savedWithdrawals);
-    };
-
-    window.addEventListener(REQUESTS_UPDATED_EVENT, syncRequests);
-    window.addEventListener('storage', syncRequests);
-    return () => {
-      window.removeEventListener(REQUESTS_UPDATED_EVENT, syncRequests);
-      window.removeEventListener('storage', syncRequests);
-    };
-  }, []);
 
   useEffect(() => {
     writeJsonStorage(ADMIN_SETTINGS_STORAGE_KEY, gameSettings);
@@ -550,13 +519,6 @@ function DashboardContent({ onLogout }) {
 
   const netPlatformProfitLoss = totalDepositApproved - totalWithdrawalApproved - totalGameExposure;
 
-  const saveRequests = (nextDeposits, nextWithdrawals) => {
-    setDepositRequests(nextDeposits);
-    setWithdrawalRequests(nextWithdrawals);
-    writeJsonStorage(DEPOSIT_REQUESTS_STORAGE_KEY, nextDeposits);
-    writeJsonStorage(WITHDRAWAL_REQUESTS_STORAGE_KEY, nextWithdrawals);
-  };
-
   const updateUserBalance = async (userId, amount) => {
     if (!userId || Number.isNaN(Number(amount)) || Number(amount) === 0) {
       setMessage('Enter a valid balance adjustment.');
@@ -578,18 +540,15 @@ function DashboardContent({ onLogout }) {
     const request = depositRequests.find((item) => item.id === requestId);
     if (!request) return;
 
-    const applied = await updateUserBalance(request.userId, Number(request.amount));
-    if (!applied) return;
-
-    const nextDeposits = depositRequests.map((item) => (item.id === requestId ? { ...item, status: 'approved', reviewedAt: new Date().toISOString() } : item));
-    saveRequests(nextDeposits, withdrawalRequests);
+    await sendAdminRequest(`/api/payments/admin/requests/${requestId}/approve`);
+    await loadData();
     setMessage(`Deposit approved for ${request.userName}.`);
     playSound('confirm');
   };
 
-  const handleRejectDeposit = (requestId) => {
-    const nextDeposits = depositRequests.map((item) => (item.id === requestId ? { ...item, status: 'rejected', reviewedAt: new Date().toISOString() } : item));
-    saveRequests(nextDeposits, withdrawalRequests);
+  const handleRejectDeposit = async (requestId) => {
+    await sendAdminRequest(`/api/payments/admin/requests/${requestId}/reject`);
+    await loadData();
     setMessage('Deposit request rejected.');
   };
 
@@ -597,23 +556,15 @@ function DashboardContent({ onLogout }) {
     const request = withdrawalRequests.find((item) => item.id === requestId);
     if (!request) return;
 
-    const applied = request.deducted ? true : await updateUserBalance(request.userId, -Number(request.amount));
-    if (!applied) return;
-
-    const nextWithdrawals = withdrawalRequests.map((item) => (item.id === requestId ? { ...item, status: 'approved', reviewedAt: new Date().toISOString() } : item));
-    saveRequests(depositRequests, nextWithdrawals);
+    await sendAdminRequest(`/api/payments/admin/requests/${requestId}/approve`);
+    await loadData();
     setMessage(`Withdrawal approved for ${request.userName}.`);
     playSound('confirm');
   };
 
-  const handleRejectWithdrawal = (requestId) => {
-    const request = withdrawalRequests.find((item) => item.id === requestId);
-    if (request?.deducted) {
-      updateUserBalance(request.userId, Number(request.amount));
-    }
-
-    const nextWithdrawals = withdrawalRequests.map((item) => (item.id === requestId ? { ...item, status: 'rejected', reviewedAt: new Date().toISOString() } : item));
-    saveRequests(depositRequests, nextWithdrawals);
+  const handleRejectWithdrawal = async (requestId) => {
+    await sendAdminRequest(`/api/payments/admin/requests/${requestId}/reject`);
+    await loadData();
     setMessage('Withdrawal request rejected.');
   };
 
@@ -809,80 +760,93 @@ function DashboardContent({ onLogout }) {
           </SectionCard>
         </div>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-2">
-          <SectionCard title="Deposit Requests" description="Approve or reject incoming deposit proofs. Approve credits the user balance automatically.">
-            <RequestTable
-              title="Pending Deposits"
-              columns={["User", "Phone", "Amount", "Gateway", "TID", "Proof"]}
-              rows={depositRequests.filter((request) => request.status === 'pending').map((request) => ({
-                id: request.id,
-                cells: [
-                  `${request.userName}\n${request.userId || 'No user id'}`,
-                  request.phone ? formatPhoneWithCountry(request.phone) : '-',
-                  formatMoney(request.amount),
-                  request.gateway,
-                  request.tid,
-                  request.receiptName ? 'Submitted' : 'Missing',
-                ],
-              }))}
-              emptyText="No pending deposit requests."
-              onApprove={handleApproveDeposit}
-              onReject={handleRejectDeposit}
-            />
-
-            <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
-              <p className="text-sm font-semibold text-white">Processed Deposits</p>
-              <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
-                {depositRequests.filter((request) => request.status !== 'pending').map((request) => (
-                  <div key={request.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm">
-                    <div>
-                      <p className="font-semibold text-white">{request.userName}</p>
-                      <p className="text-xs text-slate-500">{request.gateway} • {request.tid}</p>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${request.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
-                      {request.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        <div className="mt-8">
+          <SectionCard title="Manual Payment Approval" description="Review transaction IDs and payout requests before updating user balances.">
+            <div className="mb-5 flex flex-wrap gap-2">
+              <button onClick={() => setPaymentTab('deposits')} className={`rounded-full px-4 py-2 text-sm font-semibold ${paymentTab === 'deposits' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+                Pending Deposits
+              </button>
+              <button onClick={() => setPaymentTab('withdrawals')} className={`rounded-full px-4 py-2 text-sm font-semibold ${paymentTab === 'withdrawals' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+                Pending Withdrawals
+              </button>
             </div>
-          </SectionCard>
 
-          <SectionCard title="Withdrawal Requests" description="Approve or reject payout requests. Approving deducts the amount from the user's balance.">
-            <RequestTable
-              title="Pending Withdrawals"
-              columns={["User", "Phone", "Amount", "Account Details", "Requested"]}
-              rows={withdrawalRequests.filter((request) => request.status === 'pending').map((request) => ({
-                id: request.id,
-                cells: [
-                  request.userName,
-                  request.phone ? formatPhoneWithCountry(request.phone) : '-',
-                  formatMoney(request.amount),
-                  request.accountDetails,
-                  formatDate(request.createdAt),
-                ],
-              }))}
-              emptyText="No pending withdrawal requests."
-              onApprove={handleApproveWithdrawal}
-              onReject={handleRejectWithdrawal}
-            />
+            {paymentTab === 'deposits' ? (
+              <>
+                <RequestTable
+                  title="Pending Deposits"
+                  columns={["User", "Phone", "Amount", "Gateway", "Transaction ID", "Proof"]}
+                  rows={depositRequests.filter((request) => request.status === 'pending').map((request) => ({
+                    id: request.id,
+                    cells: [
+                      `${request.userName}\n${request.userId || ''}`,
+                      request.phone ? formatPhoneWithCountry(request.phone) : '-',
+                      formatMoney(request.amount),
+                      request.gateway,
+                      request.transactionId,
+                      request.receiptData ? <a href={request.receiptData} target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline">View proof</a> : 'Missing',
+                    ],
+                  }))}
+                  emptyText="No pending deposit requests."
+                  onApprove={handleApproveDeposit}
+                  onReject={handleRejectDeposit}
+                />
 
-            <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
-              <p className="text-sm font-semibold text-white">Processed Withdrawals</p>
-              <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
-                {withdrawalRequests.filter((request) => request.status !== 'pending').map((request) => (
-                  <div key={request.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm">
-                    <div>
-                      <p className="font-semibold text-white">{request.userName}</p>
-                      <p className="text-xs text-slate-500">{request.accountDetails}</p>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${request.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
-                      {request.status}
-                    </span>
+                <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p className="text-sm font-semibold text-white">Processed Deposits</p>
+                  <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {depositRequests.filter((request) => request.status !== 'pending').map((request) => (
+                      <div key={request.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm">
+                        <div>
+                          <p className="font-semibold text-white">{request.userName}</p>
+                          <p className="text-xs text-slate-500">{request.gateway} • {request.transactionId}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${request.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <RequestTable
+                  title="Pending Withdrawals"
+                  columns={["User", "Phone", "Amount", "Account Details", "Requested"]}
+                  rows={withdrawalRequests.filter((request) => request.status === 'pending').map((request) => ({
+                    id: request.id,
+                    cells: [
+                      request.userName,
+                      request.phone ? formatPhoneWithCountry(request.phone) : '-',
+                      formatMoney(request.amount),
+                      request.accountDetails,
+                      formatDate(request.createdAt),
+                    ],
+                  }))}
+                  emptyText="No pending withdrawal requests."
+                  onApprove={handleApproveWithdrawal}
+                  onReject={handleRejectWithdrawal}
+                />
+
+                <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                  <p className="text-sm font-semibold text-white">Processed Withdrawals</p>
+                  <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {withdrawalRequests.filter((request) => request.status !== 'pending').map((request) => (
+                      <div key={request.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm">
+                        <div>
+                          <p className="font-semibold text-white">{request.userName}</p>
+                          <p className="text-xs text-slate-500">{request.accountDetails}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${request.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </SectionCard>
         </div>
 

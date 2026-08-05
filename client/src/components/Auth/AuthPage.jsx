@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { API_URL } from '../../config';
 import SmsOtpModal from '../common/SmsOtpModal';
 import CountryPhoneInput from '../common/CountryPhoneInput';
+import { clearStoredReferralCode, extractReferralCode, getStoredReferralCode, storeReferralCode } from '../../utils/referral';
 import {
   assembleInternationalPhone,
   validatePhoneByCountry,
@@ -18,6 +19,7 @@ function AuthPage() {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    referral: '',
     password: '',
     confirmPassword: '',
     registerCountryCode: '+92',
@@ -29,6 +31,19 @@ function AuthPage() {
   const [message, setMessage] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+
+  useEffect(() => {
+    const urlReferral = extractReferralCode(window.location.search);
+    if (urlReferral) {
+      storeReferralCode(urlReferral);
+      setMode('register');
+    }
+
+    const storedReferral = urlReferral || getStoredReferralCode();
+    if (storedReferral) {
+      setForm((prev) => ({ ...prev, referral: storedReferral }));
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -64,7 +79,7 @@ function AuthPage() {
         : '';
       const loginIdentifier = loginPhone || form.email.trim();
       const payload = mode === 'register'
-        ? { name: form.name, email: form.email, phone: assembledRegisterPhone, password: form.password }
+        ? { name: form.name, email: form.email, phone: assembledRegisterPhone, password: form.password, referral: form.referral }
         : { identifier: loginIdentifier, password: form.password };
 
       if (mode === 'login') {
@@ -101,6 +116,7 @@ function AuthPage() {
 
       if (data.token) {
         login(data.token, data.user);
+        if (mode === 'register' && form.referral) clearStoredReferralCode();
       }
 
       setMessage(mode === 'register' ? 'Registration successful!' : 'Login successful!');
@@ -108,6 +124,7 @@ function AuthPage() {
       setForm({
         name: '',
         email: '',
+        referral: getStoredReferralCode(),
         password: '',
         confirmPassword: '',
         registerCountryCode: '+92',
@@ -151,7 +168,7 @@ function AuthPage() {
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, phone: phone, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, phone: phone, password: form.password, referral: form.referral }),
       });
 
       const contentType = res.headers.get('content-type') || '';
@@ -160,12 +177,14 @@ function AuthPage() {
       if (!res.ok) throw new Error(data.message || 'Authentication failed');
 
       if (data.token) login(data.token, data.user);
+      if (form.referral) clearStoredReferralCode();
 
       setMessage('Registration successful!');
       navigate('/profile');
       setForm({
         name: '',
         email: '',
+        referral: getStoredReferralCode(),
         password: '',
         confirmPassword: '',
         registerCountryCode: '+92',
@@ -237,6 +256,11 @@ function AuthPage() {
                 onChange={handleChange}
                 className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-500"
               />
+            </div>
+          )}
+          {mode === 'register' && form.referral && (
+            <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-sm text-orange-200">
+              Referral applied: <span className="font-mono font-semibold text-orange-300">{form.referral}</span>
             </div>
           )}
           <div>

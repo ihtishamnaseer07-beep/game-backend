@@ -1,7 +1,8 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
+import { API_URL } from '../../config';
 import BannerSlider from '../common/BannerSlider';
 import CategoryNav from '../common/CategoryNav';
 import GameCard from '../common/GameCard';
@@ -15,6 +16,7 @@ import PromoView from '../common/PromoView';
 import SupportView from '../common/SupportView';
 import ProfileView from '../common/ProfileView';
 import UserAvatar from '../common/UserAvatar';
+import DailyRewardsModal from '../common/DailyRewardsModal';
 
 const HOT_GAMES = [
   { id: 1, title: 'Dragon vs Lion', provider: 'WT786 Live', emoji: '🐉🦁', color: 'from-rose-600 to-amber-700' },
@@ -75,9 +77,42 @@ export default function HomePage() {
   const [activeGame, setActiveGame]     = useState(null);   // game object
   const [activeTab, setActiveTab]       = useState('home'); // bottom nav tab
   const [showInvite, setShowInvite]     = useState(false);
-  const { user, logout, updateUser } = useAuth();
+  const [showRewardsModal, setShowRewardsModal] = useState(false);
+  const [rewardStatus, setRewardStatus] = useState(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [spinReward, setSpinReward] = useState(null);
+  const { user, token, logout, updateUser } = useAuth();
   const { muted, toggleMute, playSound } = useSound();
   const balance = user?.coins ?? 0;
+
+  const loadRewardStatus = async () => {
+    if (!token || !user?._id) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/coins/daily-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Unable to load daily rewards.');
+      setRewardStatus(data);
+
+      const modalKey = `wt786_daily_modal_seen_${user._id}`;
+      const cycleKey = data.dailyBonus?.lastClaimAt
+        ? String(new Date(data.dailyBonus.lastClaimAt).getTime() + 86400000)
+        : 'initial';
+
+      if (data.dailyBonus?.available && localStorage.getItem(modalKey) !== cycleKey) {
+        localStorage.setItem(modalKey, cycleKey);
+        setShowRewardsModal(true);
+      }
+    } catch {
+      setRewardStatus(null);
+    }
+  };
+
+  useEffect(() => {
+    loadRewardStatus();
+  }, [token, user?._id]);
 
   const handlePlay = (game) => {
     if (!user) { playSound('cancel'); setModal('login'); return; }
@@ -99,6 +134,43 @@ export default function HomePage() {
     updateUser((prev) => ({ coins: Math.max(0, Number(prev?.coins || 0) + Number(delta || 0)) }));
   };
 
+  const claimDailyBonus = async () => {
+    if (!token) return;
+    setRewardLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/coins/daily-bonus`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Unable to claim daily bonus.');
+      updateUser({ coins: data.coins, dailyRewards: { ...(user?.dailyRewards || {}), lastLoginBonus: data.lastLoginBonus } });
+      await loadRewardStatus();
+    } finally {
+      setRewardLoading(false);
+    }
+  };
+
+  const spinLuckyWheel = async () => {
+    if (!token) return;
+    setRewardLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/coins/daily-spin`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Unable to spin the wheel.');
+      setSpinReward(data.reward);
+      updateUser({ coins: data.coins, dailyRewards: { ...(user?.dailyRewards || {}), lastSpinAt: data.lastSpinAt } });
+      await loadRewardStatus();
+    } finally {
+      setRewardLoading(false);
+    }
+  };
+
   const games = GAMES_BY_CATEGORY[activeCategory] || HOT_GAMES;
   const sectionLabel = LABEL_BY_CATEGORY[activeCategory] || '🔥 Hot';
 
@@ -117,6 +189,16 @@ export default function HomePage() {
         />
       )}
       {showInvite && <InviteModal onClose={() => { playSound('modalClose'); setShowInvite(false); }} />}
+      {showRewardsModal && rewardStatus && (
+        <DailyRewardsModal
+          status={rewardStatus}
+          spinningReward={spinReward}
+          loading={rewardLoading}
+          onClose={() => setShowRewardsModal(false)}
+          onClaimBonus={claimDailyBonus}
+          onSpinWheel={spinLuckyWheel}
+        />
+      )}
       <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur border-b border-slate-800">
         <div className="flex items-center justify-between px-3 py-2 max-w-full">
           <div className="flex items-center gap-2">
@@ -211,6 +293,21 @@ export default function HomePage() {
           <span className="text-sm">📢</span>
           <p className="text-xs text-yellow-300 font-medium truncate">Welcome to WIN TOON 786 — Pakistan's #1 online gaming portal!</p>
         </div>
+        {user && rewardStatus && (
+          <div className="mx-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-300">Daily Rewards</p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {rewardStatus.dailyBonus?.available ? 'Daily bonus is ready to claim.' : 'Lucky spin and daily claim refresh every 24 hours.'}
+                </p>
+              </div>
+              <button onClick={() => setShowRewardsModal(true)} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950">
+                Open
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Promo Tab View ── */}
