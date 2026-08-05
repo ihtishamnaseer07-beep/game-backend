@@ -12,7 +12,6 @@ const links = [
   { path: '/support', key: 'nav.support' },
   { path: '/leaderboard', key: 'nav.leaderboard' },
   { path: '/match', key: 'nav.match' },
-  { path: '/admin', key: 'nav.admin' },
   { path: '/profile', key: 'nav.profile' }
 ];
 
