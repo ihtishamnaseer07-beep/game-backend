@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
 import BannerSlider from '../common/BannerSlider';
@@ -67,6 +68,7 @@ const LABEL_BY_CATEGORY = {
 };
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('hot');
   const [modal, setModal]             = useState(null);   // 'login' | 'register'
   const [walletModal, setWalletModal]   = useState(null);   // 'deposit' | 'withdraw'
@@ -190,7 +192,7 @@ export default function HomePage() {
               { label: 'Deposit', emoji: '💰', color: 'from-green-600 to-emerald-800', action: () => setWalletModal('deposit') },
               { label: 'Withdraw', emoji: '🏧', color: 'from-blue-600 to-indigo-800', action: () => setWalletModal('withdraw') },
               { label: 'Invite', emoji: '🎁', color: 'from-orange-600 to-amber-800', action: () => setShowInvite(true) },
-              { label: 'VIP', emoji: '👑', color: 'from-yellow-600 to-yellow-900', action: () => {} },
+              { label: 'Admin', emoji: '🛡️', color: 'from-slate-600 to-slate-900', action: () => navigate('/admin-login') },
             ].map((action) => (
               <button key={action.label} onClick={action.action} className={`flex flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-b ${action.color} p-2.5 transition-all duration-150 ease-in-out active:scale-95 active:opacity-70`}>
                 <span className="text-lg">{action.emoji}</span>
