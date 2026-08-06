@@ -26,7 +26,6 @@ export default function SmsOtpModal({
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
-  const [timer, setTimer] = useState(0);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -40,7 +39,6 @@ export default function SmsOtpModal({
     setCountryCode(parsed.countryCode);
     setPhoneNumber(parsed.nationalNumber);
     setOtp('');
-    setTimer(0);
     setSent(false);
     setSending(false);
     setVerifying(false);
@@ -56,24 +54,10 @@ export default function SmsOtpModal({
     }
   }, []);
 
-  useEffect(() => {
-    if (!sent || timer <= 0) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      setTimer((current) => (current > 0 ? current - 1 : 0));
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [sent, timer]);
-
-  useEffect(() => {
-    if (timer === 0 && sent) {
-      setMessage('OTP expired. Tap Send OTP to try again.');
-    }
-  }, [sent, timer]);
-
   const fullPhone = useMemo(() => assembleInternationalPhone(countryCode, phoneNumber), [countryCode, phoneNumber]);
   const maskedPhone = useMemo(() => maskPhone(fullPhone), [fullPhone]);
+
+  const isResendBlocked = sent && sending;
 
   const getRecaptchaVerifier = async () => {
     if (!recaptchaVerifierRef.current) {
@@ -97,13 +81,13 @@ export default function SmsOtpModal({
     setMessage('');
 
     try {
+      const e164PhoneNumber = fullPhone.startsWith('+') ? fullPhone : `+${fullPhone}`;
       const appVerifier = await getRecaptchaVerifier();
-      const result = await signInWithPhoneNumber(firebaseAuth, fullPhone, appVerifier);
+      const result = await signInWithPhoneNumber(firebaseAuth, e164PhoneNumber, appVerifier);
       setConfirmationResult(result);
       setSent(true);
-      setTimer(60);
       setOtp('');
-      setMessage(`OTP sent to ${maskedPhone}. Please enter the 6-digit code.`);
+      setMessage(`Real SMS OTP sent to ${maskedPhone}. Please enter the 6-digit code from Firebase.`);
     } catch (sendError) {
       setError(sendError.message || 'Unable to send OTP. Please try again.');
       if (recaptchaVerifierRef.current) {
@@ -137,7 +121,7 @@ export default function SmsOtpModal({
 
     try {
       const credential = await confirmationResult.confirm(otp.trim());
-      setMessage('Phone verified successfully.');
+      setMessage('Phone verified successfully with Firebase Auth.');
       onVerified?.({
         phone: fullPhone,
         countryCode,
@@ -190,15 +174,15 @@ export default function SmsOtpModal({
             <button
               type="button"
               onClick={handleSendOtp}
-              disabled={(timer > 0 && sent) || sending}
+              disabled={isResendBlocked}
               className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {sending ? 'Sending...' : timer > 0 && sent ? `Resend in ${timer}s` : 'Send OTP'}
+              {sending ? 'Sending...' : sent ? 'Resend OTP' : 'Send OTP'}
             </button>
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">4-Digit OTP</label>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">6-Digit OTP</label>
             <input
               value={otp}
               onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -207,7 +191,7 @@ export default function SmsOtpModal({
               placeholder="123456"
               className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-center text-lg font-black tracking-[0.35em] text-white outline-none transition focus:border-cyan-500"
             />
-            <p className="mt-2 text-[11px] text-slate-500">Enter the 6-digit SMS code sent to your phone.</p>
+            <p className="mt-2 text-[11px] text-slate-500">Enter the 6-digit SMS code delivered by Firebase Auth.</p>
           </div>
 
           {message && <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-200">{message}</div>}
@@ -222,7 +206,7 @@ export default function SmsOtpModal({
             {verifying ? 'Verifying...' : confirmLabel}
           </button>
 
-          <div id="firebase-otp-recaptcha" />
+          <div id="firebase-otp-recaptcha" className="min-h-[1px]" />
         </div>
       </div>
     </div>
