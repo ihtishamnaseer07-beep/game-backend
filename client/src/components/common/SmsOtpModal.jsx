@@ -14,6 +14,36 @@ function maskPhone(phone = '') {
   return `${digits.slice(0, 4)}••••${digits.slice(-3)}`;
 }
 
+function mapFirebaseAuthError(error) {
+  const code = error?.code || '';
+
+  if (code === 'auth/invalid-phone-number') {
+    return 'Invalid phone number format. Use a valid number like +9665XXXXXXXX or +923XXXXXXXXX.';
+  }
+
+  if (code === 'auth/quota-exceeded') {
+    return 'SMS quota exceeded for this Firebase project. Please try again later.';
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return 'Too many verification attempts. Please wait and try again.';
+  }
+
+  if (code === 'auth/captcha-check-failed') {
+    return 'reCAPTCHA verification failed. Please retry sending OTP.';
+  }
+
+  if (code === 'auth/invalid-verification-code') {
+    return 'Invalid OTP code. Please enter the latest 6-digit SMS code.';
+  }
+
+  if (code === 'auth/code-expired') {
+    return 'OTP code expired. Please resend OTP and try again.';
+  }
+
+  return error?.message || 'SMS verification failed. Please try again.';
+}
+
 export default function SmsOtpModal({
   title = 'SMS Verification',
   subtitle = 'Enter your mobile number, send the OTP, then verify it to continue.',
@@ -89,7 +119,7 @@ export default function SmsOtpModal({
       setOtp('');
       setMessage(`Real SMS OTP sent to ${maskedPhone}. Please enter the 6-digit code from Firebase.`);
     } catch (sendError) {
-      setError(sendError.message || 'Unable to send OTP. Please try again.');
+      setError(mapFirebaseAuthError(sendError));
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -131,7 +161,7 @@ export default function SmsOtpModal({
         phoneVerified: true,
       });
     } catch (verifyError) {
-      setError(verifyError.message || 'OTP verification failed.');
+      setError(mapFirebaseAuthError(verifyError));
     } finally {
       setVerifying(false);
     }

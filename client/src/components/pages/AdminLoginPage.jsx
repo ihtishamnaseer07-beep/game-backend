@@ -18,6 +18,36 @@ import {
   normalizePhone,
 } from '../../security/adminSecurity';
 
+function mapFirebaseAuthError(error) {
+  const code = error?.code || '';
+
+  if (code === 'auth/invalid-phone-number') {
+    return 'Invalid phone number format. Use +966593686007.';
+  }
+
+  if (code === 'auth/quota-exceeded') {
+    return 'SMS quota exceeded for this Firebase project. Please try again later.';
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return 'Too many verification attempts. Please wait before trying again.';
+  }
+
+  if (code === 'auth/invalid-verification-code') {
+    return 'Invalid OTP code. Please enter the latest 6-digit code.';
+  }
+
+  if (code === 'auth/code-expired') {
+    return 'OTP code expired. Please send OTP again.';
+  }
+
+  if (code === 'auth/popup-closed-by-user') {
+    return 'Google sign-in popup was closed before completion.';
+  }
+
+  return error?.message || 'Authentication failed. Please try again.';
+}
+
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { firebaseUser, setAdminSession, clearAdminSession } = useAuth();
@@ -107,7 +137,7 @@ export default function AdminLoginPage() {
 
       establishSession({ email, phone, provider: 'google' });
     } catch (authError) {
-      setError(authError.message || 'Google sign-in failed.');
+      setError(mapFirebaseAuthError(authError));
     } finally {
       setLoadingGoogle(false);
     }
@@ -136,7 +166,7 @@ export default function AdminLoginPage() {
       setOtpSent(true);
       setStatus(`OTP sent to ${normalizedPhone}. Enter 6-digit code.`);
     } catch (otpError) {
-      setError(otpError.message || 'Failed to send OTP.');
+      setError(mapFirebaseAuthError(otpError));
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaVerifierRef.current = null;
@@ -183,7 +213,7 @@ export default function AdminLoginPage() {
         provider: 'phone-otp',
       });
     } catch (verifyError) {
-      setError(verifyError.message || 'OTP verification failed.');
+      setError(mapFirebaseAuthError(verifyError));
     } finally {
       setLoadingOtp(false);
     }

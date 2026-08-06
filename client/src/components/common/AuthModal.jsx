@@ -255,7 +255,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
           {showOtpModal && mode === 'register' && (
             <SmsOtpModal
               title="Register Mobile Verification"
-              subtitle="Send the demo OTP to verify the mobile number before creating your account."
+              subtitle="Send a real Firebase SMS OTP to verify your mobile number before creating your account."
               phone={assembleInternationalPhone(form.registerCountryCode, form.registerPhoneNumber)}
               defaultCountryCode={form.registerCountryCode}
               confirmLabel="Verify & Continue"

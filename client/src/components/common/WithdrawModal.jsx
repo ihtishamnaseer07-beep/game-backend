@@ -171,7 +171,7 @@ export default function WithdrawModal({ balance = 0, onClose }) {
       {showOtpModal && (
         <SmsOtpModal
           title="Withdraw Mobile Verification"
-          subtitle="Send the demo OTP to verify your mobile number before submitting a withdrawal."
+          subtitle="Send a real Firebase SMS OTP to verify your mobile number before submitting a withdrawal."
           phone={phone}
           confirmLabel="Verify & Submit"
           onClose={() => setShowOtpModal(false)}
