@@ -11,6 +11,8 @@ import {
   validatePhoneByCountry,
 } from '../../utils/phoneUtils';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 function AuthPage() {
   const navigate = useNavigate();
   const { login, setPhoneVerification } = useAuth();
@@ -47,14 +49,21 @@ function AuthPage() {
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setMessage('');
 
     if (mode === 'register' && form.password !== form.confirmPassword) {
       setMessage(t('auth.passwordMismatch'));
+      return;
+    }
+
+    if (mode === 'register' && form.password.length < 8) {
+      setMessage('Password must be at least 8 characters.');
       return;
     }
 
@@ -94,11 +103,25 @@ function AuthPage() {
         }
       }
 
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      let res;
+      try {
+        res = await fetch(`${API_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } catch (requestError) {
+        if (requestError?.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet and try again.');
+        }
+        throw requestError;
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const contentType = res.headers.get('content-type') || '';
       let data = {};
@@ -146,6 +169,7 @@ function AuthPage() {
   };
 
   const handleOtpVerified = async ({ phone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
+    if (loading) return;
     setShowOtpModal(false);
     setOtpVerified(true);
     setPhoneVerification({
@@ -164,12 +188,38 @@ function AuthPage() {
     setMessage('Mobile number verified. Completing registration...');
     setLoading(true);
 
+    if (!form.name.trim()) {
+      setMessage('Please enter your full name to continue registration.');
+      setLoading(false);
+      return;
+    }
+
+    if (!form.email.trim()) {
+      setMessage('Please enter your email to continue registration.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, phone: phone, password: form.password, referral: form.referral }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      let res;
+      try {
+        res = await fetch(`${API_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: form.name, email: form.email, phone: phone, password: form.password, referral: form.referral }),
+          signal: controller.signal,
+        });
+      } catch (requestError) {
+        if (requestError?.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet and try again.');
+        }
+        throw requestError;
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const contentType = res.headers.get('content-type') || '';
       const data = contentType.includes('application/json') ? await res.json() : {};

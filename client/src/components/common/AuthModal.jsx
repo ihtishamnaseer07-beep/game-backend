@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config';
@@ -27,6 +27,8 @@ function InputField({ label, name, type = 'text', value, onChange, placeholder, 
   );
 }
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 export default function AuthModal({ mode: initialMode, onClose }) {
   const [mode, setMode] = useState(initialMode); // 'login' | 'register'
   const [form, setForm] = useState({
@@ -46,8 +48,15 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   const [success, setSuccess] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const closeTimerRef = useRef(null);
   const { login, setPhoneVerification } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const storedReferral = getStoredReferralCode();
@@ -108,11 +117,25 @@ export default function AuthModal({ mode: initialMode, onClose }) {
       }
     }
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let res;
+    try {
+      res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (requestError) {
+      if (requestError?.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your internet and try again.');
+      }
+      throw requestError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json')
@@ -125,7 +148,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
       login(data.token, data.user);
       if (mode === 'register' && form.referral) clearStoredReferralCode();
       setSuccess(mode === 'register' ? '✅ Account created! Redirecting…' : '✅ Welcome back!');
-      setTimeout(() => {
+      closeTimerRef.current = setTimeout(() => {
         onClose();
         navigate('/profile');
       }, 1200);
@@ -134,6 +157,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setSuccess('');
 
@@ -182,6 +206,7 @@ export default function AuthModal({ mode: initialMode, onClose }) {
   };
 
   const handleOtpVerified = async ({ phone, countryCode, nationalNumber, firebaseUid, phoneVerified }) => {
+    if (loading) return;
     setShowOtpModal(false);
     setOtpVerified(true);
     setPhoneVerification({

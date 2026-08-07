@@ -24,7 +24,7 @@ export default function InviteModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
+      className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative flex w-full max-w-sm max-h-[85vh] flex-col rounded-t-3xl border border-slate-700/60 bg-slate-900 shadow-2xl sm:rounded-3xl">
@@ -128,12 +128,12 @@ export default function InviteModal({ onClose }) {
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-slate-800 px-5 py-3">
+        <div className="shrink-0 border-t border-slate-800 px-5 py-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={onClose}
             className="w-full rounded-xl border border-rose-500/40 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-300 transition-all duration-150 ease-in-out hover:bg-rose-500/25 active:scale-95 active:opacity-70"
           >
-            Exit
+            Close
           </button>
         </div>
       </div>
