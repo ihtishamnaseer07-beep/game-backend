@@ -17,6 +17,11 @@ export const firebaseApp = initializeApp(firebaseConfig);
 export const firebaseAuth = getAuth(firebaseApp);
 export const firebaseDb = getFirestore(firebaseApp);
 
+// Backward-compatible aliases for modules expecting short Firebase names.
+export const app = firebaseApp;
+export const auth = firebaseAuth;
+export const db = firebaseDb;
+
 // Analytics may not be available in all environments (e.g., WebView/private mode).
 isSupported().then((supported) => {
   if (supported) {

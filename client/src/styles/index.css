@@ -1,9 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: dark;
+  --wt-bg: #020f12;
+  --wt-panel: #0d1f24;
+  --wt-panel-border: #1d3f46;
+  --wt-accent: #24d179;
+  --wt-accent-soft: #163e2e;
 }
 
 * {
@@ -22,8 +29,8 @@ body,
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  background-color: #020617;
-  font-family: 'Arial', sans-serif;
+  background-color: var(--wt-bg);
+  font-family: 'Rajdhani', 'Segoe UI', 'Tahoma', sans-serif;
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
 }

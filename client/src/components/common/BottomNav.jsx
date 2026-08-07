@@ -8,13 +8,13 @@
 
 export default function BottomNav({ activeTab = "home", onTabChange }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-around border-t border-slate-700/60 bg-slate-900 px-2 pb-1 [-webkit-overflow-scrolling:touch]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-around border-t border-slate-700/60 bg-slate-900/95 px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur [-webkit-overflow-scrolling:touch]">
       {TABS.map((tab) =>
         tab.center ? (
           <button
             key={tab.key}
             onClick={() => onTabChange?.(tab.key)}
-            className={`-mt-4 flex h-14 w-14 flex-col items-center justify-center rounded-full shadow-lg transition-all duration-150 ease-in-out touch-manipulation active:scale-95 active:opacity-70 ${activeTab === tab.key ? "bg-green-500 text-white shadow-green-500/40" : "bg-green-600 text-white hover:bg-green-500 shadow-green-600/30"}`}
+            className={`-mt-5 flex h-14 w-14 flex-col items-center justify-center rounded-full border border-emerald-300/30 shadow-lg transition-all duration-150 ease-in-out touch-manipulation active:scale-95 active:opacity-70 ${activeTab === tab.key ? "bg-green-500 text-white shadow-green-500/40" : "bg-green-600 text-white hover:bg-green-500 shadow-green-600/30"}`}
           >
             {tab.icon}
           </button>
