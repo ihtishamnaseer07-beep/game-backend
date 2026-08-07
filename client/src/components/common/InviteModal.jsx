@@ -27,7 +27,7 @@ export default function InviteModal({ onClose }) {
       className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-slate-900 border border-slate-700/60 shadow-2xl overflow-y-auto scroll-smooth [-webkit-overflow-scrolling:touch] overscroll-contain">
+      <div className="relative flex w-full max-w-sm max-h-[85vh] flex-col rounded-t-3xl border border-slate-700/60 bg-slate-900 shadow-2xl sm:rounded-3xl">
 
         {/* header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
@@ -43,7 +43,8 @@ export default function InviteModal({ onClose }) {
           </button>
         </div>
 
-        <div className="p-5 flex flex-col gap-5">
+        <div className="flex-1 overflow-y-auto p-5 scroll-smooth overscroll-contain [-webkit-overflow-scrolling:touch]">
+          <div className="flex flex-col gap-5">
 
           {/* stats */}
           <div className="grid grid-cols-2 gap-3">
@@ -114,16 +115,26 @@ export default function InviteModal({ onClose }) {
             </div>
           </div>
 
-          {/* how it works */}
-          <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/30 px-4 py-3">
-            <p className="text-xs font-bold text-yellow-400 mb-2">💡 How It Works</p>
-            <ol className="flex flex-col gap-1 text-xs text-slate-400 list-decimal list-inside">
-              <li>Share your referral link with friends</li>
-              <li>Friend registers using your link</li>
-              <li>Your bonus is credited after the signup completes</li>
-              <li>You earn <span className="text-green-400 font-semibold">Rs 200</span> instantly!</li>
-            </ol>
+            {/* how it works */}
+            <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/30 px-4 py-3">
+              <p className="text-xs font-bold text-yellow-400 mb-2">💡 How It Works</p>
+              <ol className="flex flex-col gap-1 text-xs text-slate-400 list-decimal list-inside">
+                <li>Share your referral link with friends</li>
+                <li>Friend registers using your link</li>
+                <li>Your bonus is credited after the signup completes</li>
+                <li>You earn <span className="text-green-400 font-semibold">Rs 200</span> instantly!</li>
+              </ol>
+            </div>
           </div>
+        </div>
+
+        <div className="shrink-0 border-t border-slate-800 px-5 py-3">
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl border border-rose-500/40 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-300 transition-all duration-150 ease-in-out hover:bg-rose-500/25 active:scale-95 active:opacity-70"
+          >
+            Exit
+          </button>
         </div>
       </div>
     </div>

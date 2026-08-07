@@ -451,7 +451,7 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm [-webkit-overflow-scrolling:touch]">
       <div
         ref={containerRef}
-        className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-950 shadow-2xl max-h-[92vh]"
+        className="relative flex w-full max-w-2xl max-h-[85vh] flex-col overflow-hidden rounded-3xl border border-slate-700/60 bg-slate-950 shadow-2xl"
       >
         <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
@@ -476,17 +476,25 @@ export default function GamePlayerModal({ game, balance = 0, onClose, onDeposit,
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           <Engine game={game} balance={balance} onRoundComplete={onRoundComplete} playSound={playSound} />
         </div>
 
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-t border-slate-800 shrink-0">
-          <button
-            onClick={onDeposit}
-            className="flex items-center gap-1.5 rounded-xl border border-green-500/40 bg-green-500/20 px-3 py-2 text-xs font-bold text-green-400 transition-all duration-150 ease-in-out hover:bg-green-500/30 active:scale-95 active:opacity-70"
-          >
-            💰 Deposit More
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onDeposit}
+              className="flex items-center gap-1.5 rounded-xl border border-green-500/40 bg-green-500/20 px-3 py-2 text-xs font-bold text-green-400 transition-all duration-150 ease-in-out hover:bg-green-500/30 active:scale-95 active:opacity-70"
+            >
+              💰 Deposit More
+            </button>
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/20 px-3 py-2 text-xs font-bold text-rose-300 transition-all duration-150 ease-in-out hover:bg-rose-500/30 active:scale-95 active:opacity-70"
+            >
+              Exit
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
